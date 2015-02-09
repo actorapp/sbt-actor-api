@@ -13,11 +13,17 @@ case class AttributeType(`type`: String, childType: Option[AttributeType]) {
 case class Attribute(`type`: AttributeType, id: Int, name: String) {
   val typ = `type`
 }
-case class RpcResponse(`type`: String, header: Option[Int], attributes: Vector[Attribute])
+
+trait RpcResponse
+case class AnonymousRpcResponse(header: Int, attributes: Vector[Attribute]) extends RpcResponse
+case class ReferenceRpcResponse(name: String) extends RpcResponse
+
 case class RpcContent(header: Int, name: String, attributes: Vector[Attribute], response: RpcResponse)
 
 case class Trait(name: String)
 case class UpdateBox(name: String, header: Int, attributes: Vector[Attribute])
+
+case class Update(name: String, header: Int, attributes: Vector[Attribute])
 
 case class Struct(name: String, attributes: Vector[Attribute], `trait`: Option[Trait])
 
@@ -99,6 +105,10 @@ trait JsonFormats extends DefaultJsonProtocol {
       case _ => deserializationError("Attribute should be a JsObject")
     }
   }
+
+  implicit val anonymousRpcResponseFormat = jsonFormat2(AnonymousRpcResponse)
+  implicit val referenceRpcResponseFormat = jsonFormat1(ReferenceRpcResponse)
+
   implicit object rpcResponseFormat extends RootJsonFormat[RpcResponse] {
     def write(attr: RpcResponse): JsValue = throw new NotImplementedError()
 
@@ -115,19 +125,27 @@ trait JsonFormats extends DefaultJsonProtocol {
         deserializationError("RpcResponse should be a JsObject")
     }
 
-    def readTyped(typ: String, obj: JsObject) = {
-      val optHeader = obj.fields.get("header") map {
-        case JsNumber(header) => header.toInt
-        case _ => deserializationError("RpcResponse header should be JsString")
-      }
+    def readTyped(typ: String, obj: JsObject): RpcResponse = {
+      typ match {
+        case "anonymous" =>
+          /*
+          val optHeader = obj.fields.get("header") map {
+            case JsNumber(header) => header.toInt
+            case _ => deserializationError("RpcResponse header should be JsString")
+          }
 
-      val optAttributes: Option[Vector[Attribute]] = obj.fields.get("attributes") map {
-        case JsArray(fields) =>
-          fields map attributeFormat.read
-        case _ => deserializationError("RpcResponse attributes should be JsArray")
-      }
+          val optAttributes: Option[Vector[Attribute]] = obj.fields.get("attributes") map {
+            case JsArray(fields) =>
+              fields map attributeFormat.read
+            case _ => deserializationError("RpcResponse attributes should be JsArray")
+          }
 
-      RpcResponse(typ, optHeader, optAttributes getOrElse (Vector.empty))
+          AnonymousRpcResponse(optHeader, optAttributes getOrElse (Vector.empty))
+           */
+          anonymousRpcResponseFormat.read(obj)
+        case "reference" =>
+          referenceRpcResponseFormat.read(obj)
+      }
     }
   }
 
@@ -157,4 +175,5 @@ trait JsonFormats extends DefaultJsonProtocol {
 
   implicit val rpcContentFormat = jsonFormat4(RpcContent)
   implicit val updateBoxFormat = jsonFormat3(UpdateBox)
+  implicit val updateFormat = jsonFormat3(Update)
 }

@@ -5,7 +5,7 @@ import treehuggerDSL._
 import scala.collection. mutable
 import spray.json._, DefaultJsonProtocol._
 
-object Json2Tree extends JsonFormats with JsonHelpers {
+object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
   type Aliases = Map[String, String]
 
   def convert(jsonString: String): String = {
@@ -42,8 +42,8 @@ object Json2Tree extends JsonFormats with JsonHelpers {
       case obj: JsObject =>
         obj.fields("type") match {
           case JsString("rpc") => rpcItemTrees(obj.fields("content"), aliases)
-          case JsString("response") => Vector(responseItemTree(obj.fields("content"), aliases))
-          case JsString("update") => Vector(updateItemTree(obj.fields("content"), aliases))
+          case JsString("response") => responseItemTrees(obj.fields("content"), aliases)
+          case JsString("update") => updateItemTrees(obj.fields("content"), aliases)
           case JsString("update_box") => Vector(updateBoxItemTree(obj.fields("content"), aliases))
           case JsString("struct") => Vector(structItemTree(obj.fields("content"), aliases))
           case JsString("enum") => Vector(enumItemTree(obj.fields("content"), aliases))
@@ -60,31 +60,65 @@ object Json2Tree extends JsonFormats with JsonHelpers {
     BLOCK(elements.flatten)
   }
 
+  // TODO: hex
+  private def dec2headerDef(decHeader: Int): Tree =
+    VAL("header") := LIT(decHeader)
+
   private def rpcItemTrees(obj: JsValue, aliases: Aliases): Vector[Tree] = obj match {
     case obj: JsObject =>
       val rpc = obj.convertTo[RpcContent]
+      val className = f"Request${rpc.name}%s"
 
       val params = paramsTrees(rpc.attributes, aliases)
 
-      val request = caseClassOrObject(f"Request${rpc.name}%s", params)
-      val response = responseItemTree(rpc.name, rpc.response, aliases)
+      val requestTree = caseClassOrObject(className, params)
+      val (responseRef, responseTrees) = rpc.response match {
+        case ReferenceRpcResponse(name) =>
+          (
+            REF(f"Response$name%s"),
+            Vector.empty
+          )
+        case resp: AnonymousRpcResponse =>
+          (
+            REF(f"Response${rpc.name}%s"),
+            anonymousResponseItemTrees(rpc.name, resp, aliases)
+          )
+      }
 
-      Vector(request, response)
+      val headerDef = dec2headerDef(rpc.header)
+      val responseRefDef = VAL("Response") := responseRef
+
+      Vector(requestTree, companionObjectTree(
+        className,
+        rpc.attributes,
+        Vector(headerDef, responseRefDef))
+      ) ++ responseTrees
     case _ => throw new Exception("rpc item is not a JsObject")
   }
 
-  private def responseItemTree(name: String, resp: RpcResponse, aliases: Aliases): Tree = {
-    val params = paramsTrees(resp.attributes, aliases)
+  /**
+    *
+    *  @returns response builder ref and response definition trees
+    */
+  private def anonymousResponseItemTrees(name: String, resp: AnonymousRpcResponse, aliases: Aliases): Vector[Tree] = {
+    val className = f"Response$name%s"
 
-    caseClassOrObject(f"Response$name%s", params)
+    val params = paramsTrees(resp.attributes, aliases)
+    val headerDef = dec2headerDef(resp.header)
+
+    Vector(
+      caseClassOrObject(className, params),
+      companionObjectTree(className, resp.attributes, Vector(headerDef))
+    )
   }
 
-  private def responseItemTree(value: JsValue, aliases: Aliases): Tree = {
+  private def responseItemTrees(value: JsValue, aliases: Aliases): Vector[Tree] = {
     value match {
       case obj @ JsObject(fields) =>
         fields.get("name") match {
           case Some(JsString(name)) =>
-            responseItemTree(name, rpcResponseFormat.readTyped(name, obj), aliases)
+            val response = obj.convertTo[AnonymousRpcResponse]
+            anonymousResponseItemTrees(name, response, aliases)
           case _ => deserializationError("Response attribute should have a name of type JsString")
         }
       case _ => deserializationError("Response attribute should be a JsObject")
@@ -99,20 +133,22 @@ object Json2Tree extends JsonFormats with JsonHelpers {
       deserializationError("Trait item content should be a JsObject")
   }
 
-  private def updateItemTree(value: JsValue, aliases: Aliases): Tree = value match {
+  private def updateItemTrees(value: JsValue, aliases: Aliases): Vector[Tree] = value match {
     case obj: JsObject =>
-      obj.withField("name", "Update") {
-        case JsString(name) =>
-          obj.withField("attributes", "Update") {
-            case JsArray(jsAttributes) =>
-              val params = paramsTrees(jsAttributes map attributeFormat.read, aliases)
-              CASECLASSDEF(f"Update$name%s") withParams(params)
-            case _ =>
-              deserializationError("Update attributes should be a JsArray")
-          }
-        case _ =>
-          deserializationError("Update name should be a JsString")
-      }
+      val update = obj.convertTo[Update]
+
+      val className = f"Update${update.name}%s"
+      val params = paramsTrees(update.attributes, aliases)
+      val headerDef = dec2headerDef(update.header)
+
+      Vector(
+        caseClassOrObject(className, params),
+        companionObjectTree(
+          className,
+          update.attributes,
+          Vector(headerDef)
+        )
+      )
     case _ => deserializationError("Update item should be a JsObject")
   }
 
@@ -229,13 +265,5 @@ object Json2Tree extends JsonFormats with JsonHelpers {
     } else {
       CASEOBJECTDEF(name)
     }
-  }
-
-  private val symCache: mutable.Map[String, TermSymbol] = mutable.Map.empty
-
-  private def newOrCachedSym(name: String): TermSymbol = {
-    symCache.getOrElseUpdate(name, {
-      RootClass.newValue(name)
-    })
   }
 }
