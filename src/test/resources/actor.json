@@ -77,6 +77,171 @@
         {
           "type": "struct",
           "content": {
+            "name": "Avatar",
+            "doc": [
+              "Avatar of User or Group",
+              {
+                "type": "reference",
+                "argument": "smallImage",
+                "description": "  Optional small image of avatar box in 100x100"
+              },
+              {
+                "type": "reference",
+                "argument": "largeImage",
+                "description": "  Optional large image of avatar box in 200x200"
+              },
+              {
+                "type": "reference",
+                "argument": "fullImage",
+                "description": "  Optional full screen image of avatar"
+              }
+            ],
+            "attributes": [
+              {
+                "type": {
+                  "type": "opt",
+                  "childType": {
+                    "type": "struct",
+                    "childType": "AvatarImage"
+                  }
+                },
+                "id": 1,
+                "name": "smallImage"
+              },
+              {
+                "type": {
+                  "type": "opt",
+                  "childType": {
+                    "type": "struct",
+                    "childType": "AvatarImage"
+                  }
+                },
+                "id": 2,
+                "name": "largeImage"
+              },
+              {
+                "type": {
+                  "type": "opt",
+                  "childType": {
+                    "type": "struct",
+                    "childType": "AvatarImage"
+                  }
+                },
+                "id": 3,
+                "name": "fullImage"
+              }
+            ]
+          }
+        },
+        {
+          "type": "struct",
+          "content": {
+            "name": "FileLocation",
+            "doc": [
+              "Location of file on server",
+              {
+                "type": "reference",
+                "argument": "fileId",
+                "description": "  Unique Id of file"
+              },
+              {
+                "type": "reference",
+                "argument": "accessHash",
+                "description": "  Access hash of file"
+              }
+            ],
+            "attributes": [
+              {
+                "type": "int64",
+                "id": 1,
+                "name": "fileId"
+              },
+              {
+                "type": "int64",
+                "id": 2,
+                "name": "accessHash"
+              }
+            ]
+          }
+        },
+        {
+          "type": "struct",
+          "content": {
+            "name": "AvatarImage",
+            "doc": [
+              "Avatar Image",
+              {
+                "type": "reference",
+                "argument": "fileLocation",
+                "description": "  Location of file"
+              },
+              {
+                "type": "reference",
+                "argument": "width",
+                "description": "  Width of avatar image"
+              },
+              {
+                "type": "reference",
+                "argument": "height",
+                "description": "  Height of avatar image"
+              },
+              {
+                "type": "reference",
+                "argument": "fileSize",
+                "description": "  Size of file"
+              }
+            ],
+            "attributes": [
+              {
+                "type": {
+                  "type": "struct",
+                  "childType": "FileLocation"
+                },
+                "id": 1,
+                "name": "fileLocation"
+              },
+              {
+                "type": "int32",
+                "id": 2,
+                "name": "width"
+              },
+              {
+                "type": "int32",
+                "id": 3,
+                "name": "height"
+              },
+              {
+                "type": "int32",
+                "id": 4,
+                "name": "fileSize"
+              }
+            ]
+          }
+        },
+        {
+          "type": "struct",
+          "content": {
+            "name": "Config",
+            "doc": [
+              "Configuration of system",
+              {
+                "type": "reference",
+                "argument": "maxGroupSize",
+                "description": "  Current maximum group size"
+              }
+            ],
+            "attributes": [
+              {
+                "type": "int32",
+                "id": 1,
+                "name": "maxGroupSize"
+              }
+            ]
+          }
+        },
+        {
+          "type": "struct",
+          "content": {
             "name": "Phone",
             "doc": [
               "Extendend phone information",
@@ -399,6 +564,97 @@
                 "type": "string",
                 "id": 3,
                 "name": "name"
+              }
+            ]
+          }
+        },
+        {
+          "type": "response",
+          "content": {
+            "name": "Seq",
+            "header": 72,
+            "doc": [
+              "Sequence response. Methods that return this value must process response in particular order",
+              {
+                "type": "reference",
+                "argument": "seq",
+                "description": "  Sequence number of response"
+              },
+              {
+                "type": "reference",
+                "argument": "state",
+                "description": "  Sequence state of response"
+              }
+            ],
+            "attributes": [
+              {
+                "type": "int32",
+                "id": 1,
+                "name": "seq"
+              },
+              {
+                "id": 2,
+                "name": "state",
+                "type": "int32"
+              }
+            ]
+          }
+        },
+        {
+          "type": "response",
+          "content": {
+            "name": "Void",
+            "header": 50,
+            "doc": [
+              "Empty response"
+            ],
+            "attributes": []
+          }
+        },
+        {
+          "type": "response",
+          "content": {
+            "name": "Auth",
+            "header": 5,
+            "doc": [
+              "Authentication result",
+              {
+                "type": "reference",
+                "argument": "publicKeyHash",
+                "description": "  Public Key Hash of current authentication"
+              },
+              {
+                "type": "reference",
+                "argument": "user",
+                "description": "  The authenticated User"
+              },
+              {
+                "type": "reference",
+                "argument": "config",
+                "description": "  Current config of server"
+              }
+            ],
+            "attributes": [
+              {
+                "type": "int64",
+                "id": 1,
+                "name": "publicKeyHash"
+              },
+              {
+                "type": {
+                  "type": "struct",
+                  "childType": "User"
+                },
+                "id": 2,
+                "name": "user"
+              },
+              {
+                "type": {
+                  "type": "struct",
+                  "childType": "Config"
+                },
+                "id": 3,
+                "name": "config"
               }
             ]
           }
