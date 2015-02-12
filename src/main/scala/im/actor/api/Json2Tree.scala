@@ -36,7 +36,15 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
 
         val globalRefsTree = OBJECTDEF("Refs") := BLOCK(globalRefsV.flatten)
 
-        val tree = PACKAGE("im.actor.api") := BLOCK(packageTrees ++ Vector(globalRefsTree, parseExceptionDef))
+        val updateBoxDef = TRAITDEF("UpdateBox").tree
+        val updateDef = TRAITDEF("Update").tree
+        val rpcRequestDef = TRAITDEF("RpcRequest").tree
+        val rpcResponseDef = TRAITDEF("RpcResponse").tree
+
+        val tree = PACKAGE("im.actor.api") := BLOCK(
+          packageTrees ++ Vector(
+            globalRefsTree, parseExceptionDef, updateBoxDef, updateDef, rpcRequestDef, rpcResponseDef
+          ))
         treeToString(tree)
       case _ => deserializationError("Aliases should be JsArray")
     }
@@ -103,7 +111,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
 
       val objectTrees = Vector(headerDef, responseRefDef) ++ serTrees
 
-      val (globalRequestRefs, requestTrees) = classWithCompanion(packageName, className, Vector.empty, params, objectTrees)
+      val (globalRequestRefs, requestTrees) = classWithCompanion(packageName, className, Vector(valueCache("RpcRequest")), params, objectTrees)
 
       (
         globalRequestRefs ++ globalResponseRefs,
@@ -129,7 +137,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
     val headerDef = dec2headerDef(resp.header)
     val serTrees = serializationTrees(packageName, className, resp.attributes, aliases)
 
-    classWithCompanion(packageName, className, Vector.empty, params, Vector(headerDef) ++ serTrees)
+    classWithCompanion(packageName, className, Vector(valueCache("RpcResponse")), params, Vector(headerDef) ++ serTrees)
   }
 
   private def responseItemTrees(packageName: String, value: JsValue, aliases: Aliases): (Vector[Tree], Vector[Tree]) = {
@@ -176,7 +184,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
         aliases
       )
 
-      classWithCompanion(packageName, className, Vector.empty, params, Vector(headerDef) ++ serTrees)
+      classWithCompanion(packageName, className, Vector(valueCache("Update")), params, Vector(headerDef) ++ serTrees)
     case _ => deserializationError("Update item should be a JsObject")
   }
 

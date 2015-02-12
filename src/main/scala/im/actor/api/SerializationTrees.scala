@@ -34,12 +34,12 @@ trait SerializationTrees extends TreeHelpers {
           case None => throw new Exception(f"Alias $aliasName%s is missing")
         }
       case AttributeType("trait", Some(AttributeType(traitName, None))) =>
-        valueCache(traitName)
+        optionType(valueCache(traitName))
       case AttributeType(name, None) =>
         eitherType(f"Refs.$name%s.Partial", f"Refs.$name%s")
     }
 
-    val (params, forExprs) = attributes.foldLeft[
+    val (params, forExprs) = attributes.sortBy(_.id).foldLeft[
       (Vector[ValDef], Vector[ForValFrom])
     ]((Vector.empty, Vector.empty)) {
       case ((params, forExprs), attr) =>
@@ -115,7 +115,7 @@ trait SerializationTrees extends TreeHelpers {
     val className = "Partial"
 
     if (params.length > 0) {
-      val completeBuilder = valueCache(name) APPLY(attributes map { attr =>
+      val completeBuilder = valueCache(name) APPLY(attributes.sortBy(_.id) map { attr =>
         REF(attr.name)
       })
 
@@ -134,7 +134,7 @@ trait SerializationTrees extends TreeHelpers {
       )
 
       val objDef = OBJECTDEF(className) := BLOCK(
-        VAL("empty") := REF(className) DOT("apply") APPLY(attributes map { attr =>
+        VAL("empty") := REF(className) DOT("apply") APPLY(attributes.sortBy(_.id) map { attr =>
           attr.typ match {
             case AttributeType("list", _) => EmptyVector
             case AttributeType("struct", Some(AttributeType(structName, _))) =>
@@ -209,6 +209,18 @@ trait SerializationTrees extends TreeHelpers {
           case Some(typ) => reader(AttributeType(typ, None))
           case None => throw new Exception(f"Alias $aliasName%s is missing")
         }
+      case AttributeType("trait", Some(AttributeType(traitName, None))) =>
+        val extTypeField = name match {
+          case "MessageContent" => "type"
+          case _ => "extType"
+        }
+
+        REF("partialMessage") DOT(f"opt$extTypeField%s") MATCH(
+          CASE(REF("Some") APPLY(REF("extType"))) ==> BLOCK(
+            REF("Refs") DOT(traitName) DOT("parseFrom") APPLY(REF("extType"), REF("in"))
+          ),
+          CASE(REF("None")) ==> THROW(NEW(REF("ParseException") APPLY(LIT("Trying to parse trait but extType is missing"))))
+        )
       case attr =>
         BLOCK().withComment(attr.toString)
     }
