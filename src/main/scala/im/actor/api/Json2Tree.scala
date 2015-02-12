@@ -7,8 +7,6 @@ import scala.collection.mutable
 import spray.json._, DefaultJsonProtocol._
 
 object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
-  type Aliases = Map[String, String]
-
   def convert(jsonString: String): String = {
     val jsonAst = jsonString.parseJson
     val rootObj = jsonAst.convertTo[JsObject]
@@ -38,7 +36,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
 
         val globalRefsTree = OBJECTDEF("Refs") := BLOCK(globalRefsV.flatten)
 
-        val tree = PACKAGE("im.actor.api") := BLOCK(packageTrees :+ globalRefsTree)
+        val tree = PACKAGE("im.actor.api") := BLOCK(packageTrees ++ Vector(globalRefsTree, parseExceptionDef))
         treeToString(tree)
       case _ => deserializationError("Aliases should be JsArray")
     }
@@ -83,12 +81,12 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
       val (responseRef, (globalResponseRefs, responseTrees)) = rpc.response match {
         case ReferenceRpcResponse(name) =>
           (
-            REF(f"Response$name%s"),
+            REF(f"Refs.Response$name%s"),
             (Vector.empty, Vector.empty)
           )
         case resp: AnonymousRpcResponse =>
           (
-            REF(f"Response${rpc.name}%s"),
+            REF(f"Refs.Response${rpc.name}%s"),
             anonymousResponseItemTrees(packageName, rpc.name, resp, aliases)
           )
       }
@@ -96,12 +94,16 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
       val headerDef = dec2headerDef(rpc.header)
       val responseRefDef = VAL("Response") := responseRef
 
-      val objectTrees = Vector(headerDef, responseRefDef) ++ serializationTrees(
+      val serTrees = serializationTrees(
+        packageName,
         className,
-        rpc.attributes
+        rpc.attributes,
+        aliases
       )
 
-      val (globalRequestRefs, requestTrees) = classWithCompanion(packageName, className, params, objectTrees)
+      val objectTrees = Vector(headerDef, responseRefDef) ++ serTrees
+
+      val (globalRequestRefs, requestTrees) = classWithCompanion(packageName, className, Vector.empty, params, objectTrees)
 
       (
         globalRequestRefs ++ globalResponseRefs,
@@ -125,9 +127,9 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
     val params = paramsTrees(resp.attributes, aliases)
 
     val headerDef = dec2headerDef(resp.header)
-    val serTrees = serializationTrees(className, resp.attributes)
+    val serTrees = serializationTrees(packageName, className, resp.attributes, aliases)
 
-    classWithCompanion(packageName, className, params, Vector(headerDef) ++ serTrees)
+    classWithCompanion(packageName, className, Vector.empty, params, Vector(headerDef) ++ serTrees)
   }
 
   private def responseItemTrees(packageName: String, value: JsValue, aliases: Aliases): (Vector[Tree], Vector[Tree]) = {
@@ -168,11 +170,13 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
       val headerDef = dec2headerDef(update.header)
 
       val serTrees = serializationTrees(
+        packageName,
         className,
-        update.attributes
+        update.attributes,
+        aliases
       )
 
-      classWithCompanion(packageName, className, params, Vector(headerDef) ++ serTrees)
+      classWithCompanion(packageName, className, Vector.empty, params, Vector(headerDef) ++ serTrees)
     case _ => deserializationError("Update item should be a JsObject")
   }
 
@@ -202,11 +206,21 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
 
       val params = paramsTrees(struct.attributes, aliases)
 
-      val traitOpt = struct.`trait` map {
-        case Trait(traitName) =>
-          valueCache(traitName)
+      val serTrees = serializationTrees(
+        packageName,
+        struct.name,
+        struct.attributes,
+        aliases
+      )
+
+      val parents = struct.`trait` match {
+        case Some(Trait(traitName)) =>
+          Vector(typeRef(valueCache(traitName)))
+        case None => Vector.empty
       }
 
+      classWithCompanion(packageName, struct.name, parents, params, serTrees)
+/*
       if (params.isEmpty) {
         val obj = CASEOBJECTDEF(struct.name)
         traitOpt match {
@@ -228,7 +242,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
           Vector(TYPEVAR(struct.name) := REF(f"$packageName%s.${struct.name}%s")),
           Vector(cls)
         )
-      }
+      }*/
     case _ => deserializationError("Struct item should be a JsObject")
   }
 
@@ -253,9 +267,11 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
                 case _ => deserializationError("Enum values should be JsObject")
               }
 
+              val traitDef = TRAITDEF(name)
+
               val typeAlias = (TYPEVAR(name) := typeRef(valueCache("Value")))
 
-              val obj = OBJECTDEF(name) withParents("Enumeration") := BLOCK(
+              val objDef = OBJECTDEF(name) withParents("Enumeration", name) := BLOCK(
                 Seq(typeAlias) ++ values
               )
 
@@ -264,7 +280,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
                   TYPEVAR(name) := REF(f"$packageName%s.$name%s.$name%s"),
                   VAL(name) := REF(f"$packageName%s.$name%s")
                 ),
-                Vector(obj)
+                Vector(traitDef, objDef)
               )
             case _ => deserializationError("Enum attributes should be a non-empty JsArray")
           }
@@ -273,31 +289,6 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
       }
     case _ =>
       deserializationError("Enum item should be a JsObject")
-  }
-
-  private def attrType(typ: AttributeType, aliases: Aliases): Type = typ match {
-    case AttributeType("int32", None) => IntClass
-    case AttributeType("int64", None) => LongClass
-    case AttributeType("double", None) => DoubleClass
-    case AttributeType("string", None) => StringClass
-    case AttributeType("bool", None) => BooleanClass
-    case AttributeType("struct", Some(child)) =>
-      attrType(child, aliases)
-    case AttributeType("enum", Some(child)) =>
-      attrType(child, aliases)
-    case AttributeType("list", Some(child)) =>
-      listType(attrType(child, aliases))
-    case AttributeType("opt", Some(child)) =>
-      optionType(attrType(child, aliases))
-    case AttributeType("alias", Some(AttributeType(aliasName, None))) =>
-      aliases.get(aliasName) match {
-        case Some(typ) => attrType(AttributeType(typ, None), aliases)
-        case None => throw new Exception(f"Alias $aliasName%s is missing")
-      }
-    case AttributeType("trait", Some(AttributeType(traitName, None))) =>
-      valueCache(traitName)
-    case AttributeType(name, None) =>
-      valueCache(f"Refs.$name%s")
   }
 
   private def paramsTrees(attributes: Vector[Attribute], aliases: Aliases): Vector[ValDef] = {
@@ -309,6 +300,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
   private def classWithCompanion(
     packageName: String,
     name: String,
+    parents: Vector[Type],
     params: Vector[ValDef],
     objectTrees: Vector[Tree]
   ): (Vector[Tree], Vector[Tree]) = {
@@ -320,7 +312,10 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
     if (params.isEmpty) {
       (
         Vector(objRef),
-        Vector(CASEOBJECTDEF(name) := objBlock)
+        Vector(
+          TRAITDEF(name) withParents(parents),
+          CASEOBJECTDEF(name) withParents(valueCache(name)) := objBlock
+        )
       )
     } else {
       (
@@ -328,7 +323,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
           TYPEVAR(name) := ref, objRef
         ),
         Vector(
-          CASECLASSDEF(name) withParams(params),
+          CASECLASSDEF(name) withParents(parents) withParams(params),
           OBJECTDEF(name) := objBlock
         )
       )
