@@ -228,29 +228,6 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
       }
 
       classWithCompanion(packageName, struct.name, parents, params, serTrees)
-/*
-      if (params.isEmpty) {
-        val obj = CASEOBJECTDEF(struct.name)
-        traitOpt match {
-          case Some(t) => obj.withParents(t)
-          case None => obj
-        }
-
-        (
-          Vector(VAL(struct.name) := REF(f"$packageName%s.${struct.name}%s")),
-          Vector(obj)
-        )
-      } else {
-        val cls = CASECLASSDEF(struct.name) withParams(params)
-        traitOpt match {
-          case Some(t) => cls.withParents(t)
-          case None => cls
-        }
-        (
-          Vector(TYPEVAR(struct.name) := REF(f"$packageName%s.${struct.name}%s")),
-          Vector(cls)
-        )
-      }*/
     case _ => deserializationError("Struct item should be a JsObject")
   }
 
