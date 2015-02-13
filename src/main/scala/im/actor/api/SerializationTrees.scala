@@ -34,7 +34,7 @@ trait SerializationTrees extends TreeHelpers with Hacks {
           case None => throw new Exception(f"Alias $aliasName%s is missing")
         }
       case AttributeType("trait", Some(AttributeType(traitName, None))) =>
-        optionType(valueCache(traitName))
+        eitherType("Any", f"Refs.$traitName%s")
       case AttributeType(name, None) =>
         eitherType(f"Refs.$name%s.Partial", f"Refs.$name%s")
     }
@@ -78,24 +78,33 @@ trait SerializationTrees extends TreeHelpers with Hacks {
               params :+ PARAM(attr.name, partialAttrType(attr.typ, aliases)).tree,
               forExprs
             )
-          case typ @ AttributeType("struct", _) =>
+          case typ @ AttributeType("struct" | "trait", _) =>
             val eitherAttr = f"either${attr.name}%s"
             (
               params :+ PARAM(eitherAttr, partialAttrType(typ, aliases)).tree,
               forExprs :+ (VALFROM(attr.name) := REF(eitherAttr) DOT("right") DOT("toOption"))
             )
-          case typ @ AttributeType("opt", Some(AttributeType("struct", _))) =>
+          case typ @ AttributeType("opt", Some(AttributeType("struct" | "trait", _))) =>
             val opteitherAttr = f"opteither${attr.name}%s"
             (
-              params :+ PARAM(opteitherAttr, partialAttrType(typ, aliases)).tree,
+              params :+ PARAM(opteitherAttr, optionType(partialAttrType(typ, aliases))).tree,
               forExprs :+ (
                 VALFROM(attr.name) := BLOCK(
                   REF(opteitherAttr) MATCH(
-                    CASE(REF("None")) ==>
-                        (REF("Some") APPLY(REF("None"))),
-                    CASE(REF("Some") APPLY(REF("Left") APPLY(WILDCARD))) ==>
+                    CASE(REF("None")) ==> REF("None"),
+
+                    CASE(REF("Some") APPLY(
+                      REF("Some") APPLY(REF("Left") APPLY(WILDCARD)))
+                    ) ==>
                         REF("None"),
-                    CASE(REF("Some") APPLY(REF("Right") APPLY(REF("msg")))) ==>
+
+                    CASE(REF("Some") APPLY(REF("None"))) ==> (
+                      REF("Some") APPLY(REF("None"))
+                    ),
+
+                    CASE(REF("Some") APPLY(
+                      REF("Some") APPLY(REF("Right") APPLY(REF("msg"))))
+                    ) ==>
                         (REF("Some") APPLY(
                           REF("Some") APPLY(REF("msg"))
                         ))
@@ -133,22 +142,52 @@ trait SerializationTrees extends TreeHelpers with Hacks {
         )
       )
 
+      def emptyValue(attr: Attribute) = attr.typ match {
+        case AttributeType("list", _) => EmptyVector
+        case AttributeType("opt", _) => REF("Some") APPLY(REF("None"))
+        case AttributeType("struct", Some(AttributeType(structName, _))) =>
+          REF("Left") APPLY(
+            REF("Refs") DOT(structName) DOT("Partial") DOT("empty")
+          )
+        case AttributeType("trait", Some(AttributeType(_, _))) =>
+          REF("Left") APPLY(UNIT)
+        case _ => REF("None")
+      }
+
       val objDef = OBJECTDEF(className) := BLOCK(
         VAL("empty") := REF(className) DOT("apply") APPLY(attributes.sortBy(_.id) map { attr =>
-          attr.typ match {
-            case AttributeType("list", _) => EmptyVector
-            case AttributeType("struct", Some(AttributeType(structName, _))) =>
-              REF("Left") APPLY(
-                REF("Refs") DOT(structName) DOT("Partial") DOT("empty")
-              )
-            case _ => REF("None")
-          }
+          emptyValue(attr)
         })
       )
 
       Some(Vector(classDef, objDef))
     } else {
       None
+    }
+  }
+
+  protected def traitSerializationTrees(traitName: String, children: Vector[NamedItem]): Vector[Tree] = {
+    if (children.length > 0) {
+      val parseFromDef = DEF("parseFrom", eitherType("Any", valueCache(traitName))) withParams(
+        PARAM("in", valueCache("com.google.protobuf.CodedInputStream")),
+        PARAM("ext", IntClass)
+      ) := BLOCK(
+        REF("ext") MATCH (
+          children map(c => (c, c.traitExt)) map {
+            case (child, Some(TraitExt(_, ext))) =>
+            CASE(LIT(ext)) ==> (
+              REF("Refs") DOT(child.name) DOT("parseFrom") APPLY(REF("in"))
+            )
+
+            case _ =>
+              throw new Exception("No trait ext in trait child")
+          }
+        )
+      )
+
+      Vector(parseFromDef)
+    } else {
+      Vector.empty
     }
   }
 
@@ -214,7 +253,7 @@ trait SerializationTrees extends TreeHelpers with Hacks {
 
         REF("partialMessage") DOT(f"opt$extTypeField%s") MATCH(
           CASE(REF("Some") APPLY(REF("extType"))) ==> BLOCK(
-            REF("Refs") DOT(f"$traitName%s__") DOT("parseFrom") APPLY(REF("in"))
+            REF("Refs") DOT(traitName) DOT("parseFrom") APPLY(REF("in"), REF("extType"))
           ),
           CASE(REF("None")) ==> THROW(NEW(REF("ParseException") APPLY(LIT("Trying to parse trait but extType is missing"))))
         )
@@ -235,10 +274,10 @@ trait SerializationTrees extends TreeHelpers with Hacks {
               }
             case None =>
               attrType match {
-                case AttributeType("struct", _) =>
+                case AttributeType("struct" | "trait", _) =>
                   REF(f"either$attrName%s") := reader(attrType)
-                case AttributeType("opt", Some(AttributeType("struct", _))) =>
-                  REF(f"opteither$attrName%s") := reader(attrType)
+                case AttributeType("opt", Some(AttributeType("struct" | "trait", _))) =>
+                  REF(f"opteither$attrName%s") := SOME(reader(attrType))
                 case AttributeType("list", Some(AttributeType("struct", _))) =>
                   REF(f"eithers$attrName%s") := reader(attrType)
                 case _ =>
@@ -268,6 +307,8 @@ trait SerializationTrees extends TreeHelpers with Hacks {
           wireType(optAttrType)
         case AttributeType("list", Some(listAttrType)) =>
           wireType(listAttrType)
+        case AttributeType("enum", Some(_)) =>
+          WireFormat.WIRETYPE_VARINT
         case AttributeType("struct" | "enum" | "trait", Some(_)) =>
           WireFormat.WIRETYPE_LENGTH_DELIMITED
       }

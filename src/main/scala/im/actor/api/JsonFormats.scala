@@ -14,25 +14,51 @@ case class Attribute(`type`: AttributeType, id: Int, name: String) {
   val typ = `type`
 }
 
+trait Item {
+  def traitExt: Option[TraitExt]
+}
+
+trait NamedItem extends Item {
+  def name: String
+}
+
 trait RpcResponse
-case class AnonymousRpcResponse(header: Int, attributes: Vector[Attribute]) extends RpcResponse {
+case class AnonymousRpcResponse(header: Int, attributes: Vector[Attribute]) extends Item with RpcResponse {
+  def traitExt = None
   def toNamed(name: String) = NamedRpcResponse(name, header, attributes)
 }
-case class ReferenceRpcResponse(name: String) extends RpcResponse
-case class NamedRpcResponse(name: String, header: Int, attributes: Vector[Attribute]) extends RpcResponse
+case class ReferenceRpcResponse(name: String) extends NamedItem with RpcResponse {
+  def traitExt = None
+}
+case class NamedRpcResponse(name: String, header: Int, attributes: Vector[Attribute]) extends NamedItem with RpcResponse {
+  def traitExt = None
+}
 
-case class RpcContent(header: Int, name: String, attributes: Vector[Attribute], response: RpcResponse)
+case class RpcContent(header: Int, name: String, attributes: Vector[Attribute], response: RpcResponse) extends NamedItem {
+  def traitExt = None
+}
 
-case class Trait(name: String)
+case class Trait(name: String) extends NamedItem {
+  def traitExt = None
+}
 case class TraitExt(name: String, key: Int)
-case class UpdateBox(name: String, header: Int, attributes: Vector[Attribute])
 
-case class Update(name: String, header: Int, attributes: Vector[Attribute])
+case class UpdateBox(name: String, header: Int, attributes: Vector[Attribute]) extends NamedItem {
+  def traitExt = None
+}
 
-case class Struct(name: String, attributes: Vector[Attribute], `trait`: Option[TraitExt])
+case class Update(name: String, header: Int, attributes: Vector[Attribute]) extends NamedItem {
+  def traitExt = None
+}
 
+case class Struct(name: String, attributes: Vector[Attribute], `trait`: Option[TraitExt]) extends NamedItem {
+  def traitExt = `trait`
+}
+
+case class Enum(name: String, values: Vector[EnumValue]) extends NamedItem {
+  def traitExt = None
+}
 case class EnumValue(id: Int, name: String)
-case class Enum(name: String, values: Vector[EnumValue])
 
 trait JsonFormats extends DefaultJsonProtocol with Hacks {
   implicit val traitFormat = jsonFormat1(Trait)

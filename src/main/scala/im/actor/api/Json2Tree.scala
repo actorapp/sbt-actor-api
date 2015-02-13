@@ -50,47 +50,78 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
     }
   }
 
+  private type TreesTraitsChildren = (Vector[Tree], Vector[Tree], Vector[Trait], Vector[NamedItem])
+  private type TreesChildren = (Vector[Tree], Vector[Tree], Vector[NamedItem])
+
+  private def merge(a: TreesTraitsChildren, b: TreesTraitsChildren): TreesTraitsChildren = (
+    a._1 ++ b._1,
+    a._2 ++ b._2,
+    a._3 ++ b._3,
+    a._4 ++ b._4
+  )
+
+  private def merge(a: TreesTraitsChildren, b: (Vector[Tree], Vector[Tree])): TreesTraitsChildren = (
+    a._1 ++ b._1,
+    a._2 ++ b._2,
+    a._3,
+    a._4
+  )
+
+  private def merge(a: TreesTraitsChildren, b: Vector[Trait]): TreesTraitsChildren =
+    a.copy(_3 = a._3 ++ b)
+
+  private def merge(a: TreesTraitsChildren, b: TreesChildren): TreesTraitsChildren =
+    (
+      a._1 ++ b._1,
+      a._2 ++ b._2,
+      a._3,
+      a._4 ++ b._3
+    )
+
   private def itemsBlock(packageName: String, jsonElements: Vector[JsValue], aliases: Aliases): (Vector[Tree], Tree) = {
-    val refsTreesSeq: Vector[(Vector[Tree], Vector[Tree])] = jsonElements map {
-      case obj: JsObject =>
+    val (globalRefs, trees, traits, allChildren): TreesTraitsChildren = jsonElements.foldLeft[TreesTraitsChildren](
+      (Vector.empty, Vector.empty, Vector.empty, Vector.empty)
+    ) {
+      case (trees, obj: JsObject) =>
         obj.fields("type") match {
           case JsString("rpc") =>
             obj.withObjectField("content") { o =>
               val rpc = o.convertTo[RpcContent]
-              rpcItemTrees(packageName, rpc, aliases)
+              merge(trees, rpcItemTrees(packageName, rpc, aliases))
             }
           case JsString("response") =>
             obj.withObjectField("content") { o =>
               val response = o.convertTo[NamedRpcResponse]
-              namedResponseItemTrees(packageName, response, aliases)
+              merge(trees, namedResponseItemTrees(packageName, response, aliases))
             }
           case JsString("update") =>
             obj.withObjectField("content") { o =>
               val update = o.convertTo[Update]
-              updateItemTrees(packageName, update, aliases)
+              merge(trees, updateItemTrees(packageName, update, aliases))
             }
           case JsString("update_box") =>
             obj.withObjectField("content") { o =>
               val ub = o.convertTo[UpdateBox]
-              updateBoxItemTrees(packageName, ub, aliases)
+              merge(trees, updateBoxItemTrees(packageName, ub, aliases))
             }
           case JsString("struct") =>
             obj.withObjectField("content") { o =>
               val struct = o.convertTo[Struct]
-              structItemTrees(packageName, struct, aliases)
+              merge(trees, structItemTrees(packageName, struct, aliases))
             }
           case JsString("enum") =>
             obj.withObjectField("content") { o =>
               val enum = o.convertTo[Enum]
-              enumItemTrees(packageName, enum, aliases)
+              merge(trees, enumItemTrees(packageName, enum, aliases))
             }
           case JsString("trait") =>
             obj.withObjectField("content") { o =>
               val trai = o.convertTo[Trait]
-              traitItemTrees(packageName, trai, aliases)
+              merge(trees, Vector(trai))
+              //merge(trees, traitItemTrees(packageName, trai, aliases))
             }
-          case JsString("comment") => (Vector.empty, Vector.empty)
-          case JsString("empty") => (Vector.empty, Vector.empty)
+          case JsString("comment") => trees
+          case JsString("empty") => trees
           case JsString(typ) => throw new Exception(f"Unsupported item: $typ%s")
           case _ => throw new Exception("Item type is not a JsString")
         }
@@ -98,9 +129,11 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
         throw new Exception("item is not a JsObject")
     }
 
-    val (globalRefsV, elementsV) = refsTreesSeq.unzip
+    val (traitGlobalRefsV, traitTreesV): (Vector[Vector[Tree]], Vector[Vector[Tree]]) = (traits map (trai =>
+      traitItemTrees(packageName, trai, aliases, allChildren.filter(_.traitExt.map(_.name) == Some(trai.name)))
+    )).unzip
 
-    (globalRefsV.flatten, BLOCK(elementsV.flatten))
+    (globalRefs ++ traitGlobalRefsV.flatten, BLOCK(trees ++ traitTreesV.flatten))
   }
 
   // TODO: hex
@@ -164,12 +197,22 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
     classWithCompanion(packageName, className, Vector(valueCache("RpcResponse")), params, Vector(headerDef) ++ serTrees)
   }
 
-  private def traitItemTrees(packageName: String, trai: Trait, aliases: Aliases): (Vector[Tree], Vector[Tree]) = {
-    val globalRef = TYPEVAR(trai.name) := REF(f"$packageName%s.${trai.name}%s")
+  private def traitItemTrees(packageName: String, trai: Trait, aliases: Aliases, children: Vector[NamedItem]): (Vector[Tree], Vector[Tree]) = {
+    val globalRefs = Vector(
+      TYPEVAR(trai.name) := REF(f"$packageName%s.${trai.name}%s"),
+      VAL(trai.name) := REF(f"$packageName%s.${trai.name}%s")
+    )
+
+    val traitDef = TRAITDEF(trai.name)
+
+    // TODO: move to SerializationTrees
+    val objDef = OBJECTDEF(trai.name) := BLOCK(
+      traitSerializationTrees(trai.name, children)
+    )
 
     (
-      Vector(globalRef),
-      Vector(TRAITDEF(trai.name))
+      globalRefs,
+      Vector(traitDef, objDef)
     )
   }
 
@@ -204,7 +247,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
     }
   }
 
-  private def structItemTrees(packageName: String, struct: Struct, aliases: Aliases): (Vector[Tree], Vector[Tree]) = {
+  private def structItemTrees(packageName: String, struct: Struct, aliases: Aliases): TreesChildren = {
     val params = paramsTrees(struct.attributes, aliases)
 
     val serTrees = serializationTrees(
@@ -214,13 +257,19 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
       aliases
     )
 
-    val parents = struct.`trait` match {
-      case Some(TraitExt(traitName, traitKey)) =>
-        Vector(typeRef(valueCache(traitName)))
-      case None => Vector.empty
+    val (parents, traitChildren) = struct.`trait` match {
+      case Some(traitExt @ TraitExt(traitName, traitKey)) =>
+        (
+          Vector(typeRef(valueCache(traitName))),
+          Vector(traitExt)
+        )
+      case None => (Vector.empty, Vector.empty)
     }
 
-    classWithCompanion(packageName, struct.name, parents, params, serTrees)
+    classWithCompanion(packageName, struct.name, parents, params, serTrees) match {
+      case (globalRefs, trees) =>
+        (globalRefs, trees, Vector(struct))
+    }
   }
 
   // TODO: use custom json formatters here
