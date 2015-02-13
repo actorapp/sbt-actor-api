@@ -253,7 +253,11 @@ trait SerializationTrees extends TreeHelpers with Hacks {
 
         REF("partialMessage") DOT(f"opt$extTypeField%s") MATCH(
           CASE(REF("Some") APPLY(REF("extType"))) ==> BLOCK(
-            REF("Refs") DOT(traitName) DOT("parseFrom") APPLY(REF("in"), REF("extType"))
+            VAL("bytes") := REF("in") DOT("readBytes") APPLY() DOT("toByteArray"),
+
+            VAL("stream") := valueCache("com.google.protobuf.CodedInputStream") DOT("newInstance") APPLY(REF("bytes")),
+
+            REF("Refs") DOT(traitName) DOT("parseFrom") APPLY(REF("stream"), REF("extType"))
           ),
           CASE(REF("None")) ==> THROW(NEW(REF("ParseException") APPLY(LIT("Trying to parse trait but extType is missing"))))
         )
