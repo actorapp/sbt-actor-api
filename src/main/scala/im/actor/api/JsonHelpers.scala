@@ -19,5 +19,10 @@ trait JsonHelpers {
     }
 
     def withField[A](key: String)(f: JsValue => A): A = withField[A](key, "")(f)
+
+    def withObjectField[A](key: String)(f: JsObject => A): A = withField(key) {
+      case o: JsObject => f(o)
+      case unexpected => throw new Exception(s"$key should be a JsObject but got: $unexpected")
+    }
   }
 }

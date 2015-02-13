@@ -15,20 +15,32 @@ case class Attribute(`type`: AttributeType, id: Int, name: String) {
 }
 
 trait RpcResponse
-case class AnonymousRpcResponse(header: Int, attributes: Vector[Attribute]) extends RpcResponse
+case class AnonymousRpcResponse(header: Int, attributes: Vector[Attribute]) extends RpcResponse {
+  def toNamed(name: String) = NamedRpcResponse(name, header, attributes)
+}
 case class ReferenceRpcResponse(name: String) extends RpcResponse
+case class NamedRpcResponse(name: String, header: Int, attributes: Vector[Attribute]) extends RpcResponse
 
 case class RpcContent(header: Int, name: String, attributes: Vector[Attribute], response: RpcResponse)
 
 case class Trait(name: String)
+case class TraitExt(name: String, key: Int)
 case class UpdateBox(name: String, header: Int, attributes: Vector[Attribute])
 
 case class Update(name: String, header: Int, attributes: Vector[Attribute])
 
-case class Struct(name: String, attributes: Vector[Attribute], `trait`: Option[Trait])
+case class Struct(name: String, attributes: Vector[Attribute], `trait`: Option[TraitExt])
 
-trait JsonFormats extends DefaultJsonProtocol {
+case class EnumValue(id: Int, name: String)
+case class Enum(name: String, values: Vector[EnumValue])
+
+trait JsonFormats extends DefaultJsonProtocol with Hacks {
   implicit val traitFormat = jsonFormat1(Trait)
+  implicit val traitExtFormat = jsonFormat2(TraitExt)
+
+  implicit val enumValueFormat = jsonFormat2(EnumValue)
+  implicit val enumFormat = jsonFormat2(Enum)
+
   implicit object aliasFormat extends RootJsonFormat[Alias] {
     def write(typ: Alias): JsValue = throw new NotImplementedError()
 
@@ -108,6 +120,7 @@ trait JsonFormats extends DefaultJsonProtocol {
 
   implicit val anonymousRpcResponseFormat = jsonFormat2(AnonymousRpcResponse)
   implicit val referenceRpcResponseFormat = jsonFormat1(ReferenceRpcResponse)
+  implicit val namedRpcResponseFormat     = jsonFormat3(NamedRpcResponse)
 
   implicit object rpcResponseFormat extends RootJsonFormat[RpcResponse] {
     def write(attr: RpcResponse): JsValue = throw new NotImplementedError()
@@ -158,13 +171,12 @@ trait JsonFormats extends DefaultJsonProtocol {
           case Seq(JsString(name), JsArray(jsAttributes)) =>
             val attributes = jsAttributes map attributeFormat.read
 
-            val traitOpt: Option[Trait] = obj.fields.get("trait") map {
-              case JsString(t) => Trait(t)
-              case obj: JsObject => traitFormat.read(obj)
-              case _ => deserializationError("Expecting trait to be a JsString or JsObject")
+            val traitExtOpt: Option[TraitExt] = obj.fields.get("trait") map {
+              case obj: JsObject => traitExtFormat.read(obj)
+              case _ => deserializationError("Expecting traitExt to be a JsObject")
             }
 
-            Struct(name, attributes, traitOpt)
+            Struct(name, attributes, traitExtOpt)
           case _ => deserializationError("Both name and attributes are required for Struct")
         }
 

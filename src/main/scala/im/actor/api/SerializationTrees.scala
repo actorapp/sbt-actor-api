@@ -5,7 +5,7 @@ import scala.language.postfixOps
 import treehugger.forest._, definitions._
 import treehuggerDSL._
 
-trait SerializationTrees extends TreeHelpers {
+trait SerializationTrees extends TreeHelpers with Hacks {
   protected val parseExceptionDef: Tree = CLASSDEF("ParseException") withParents(REF("Exception")) withParams(
     PARAM("partialMessage", valueCache("Any"))
   )
@@ -210,14 +210,11 @@ trait SerializationTrees extends TreeHelpers {
           case None => throw new Exception(f"Alias $aliasName%s is missing")
         }
       case AttributeType("trait", Some(AttributeType(traitName, None))) =>
-        val extTypeField = name match {
-          case "MessageContent" => "type"
-          case _ => "extType"
-        }
+        val extTypeField = extTypeName(name)
 
         REF("partialMessage") DOT(f"opt$extTypeField%s") MATCH(
           CASE(REF("Some") APPLY(REF("extType"))) ==> BLOCK(
-            REF("Refs") DOT(traitName) DOT("parseFrom") APPLY(REF("extType"), REF("in"))
+            REF("Refs") DOT(f"$traitName%s__") DOT("parseFrom") APPLY(REF("in"))
           ),
           CASE(REF("None")) ==> THROW(NEW(REF("ParseException") APPLY(LIT("Trying to parse trait but extType is missing"))))
         )
@@ -226,7 +223,6 @@ trait SerializationTrees extends TreeHelpers {
     }
 
     def readCaseBody(attrName: String, attrType: AttributeType, appendOp: Option[String]): Tree = {
-      //println(attrName, attrType, appendOp)
       REF("doParse") APPLY(
         REF("partialMessage") DOT("copy") APPLY(
           appendOp match {
