@@ -2033,7 +2033,7 @@ package im.actor.api {
     }
   }
   package messaging {
-    case class MessageContent(`type`: Int, content: Message)
+    case class MessageContent(`type`: Int, content: Refs.Message)
     object MessageContent {
       case class Partial(opttype: Option[Int], eithercontent: Either[Any, Refs.Message]) {
         def toComplete: Option[MessageContent] = {
@@ -2110,7 +2110,7 @@ package im.actor.api {
         })
       }
     }
-    case class ServiceMessage(text: String, extType: Int, ext: Option[ServiceExtension]) extends Message
+    case class ServiceMessage(text: String, extType: Int, ext: Option[Refs.ServiceExtension]) extends Message
     object ServiceMessage {
       case class Partial(opttext: Option[String], optextType: Option[Int], opteitherext: Option[Option[Either[Any, Refs.ServiceExtension]]]) {
         def toComplete: Option[ServiceMessage] = {

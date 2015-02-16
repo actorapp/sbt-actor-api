@@ -7,10 +7,29 @@ case class Alias(`type`: String, alias: String) {
   val typ = `type`
 }
 
-case class AttributeType(`type`: String, childType: Option[AttributeType]) {
-  val typ = `type`
+object Types {
+  trait AttributeType
+
+  case object Int32 extends AttributeType
+  case object Int64 extends AttributeType
+  case object Double extends AttributeType
+  case object String extends AttributeType
+  case object Bool extends AttributeType
+  case object Bytes extends AttributeType
+
+  case class Struct(name: String) extends AttributeType
+  case class Enum(name: String) extends AttributeType
+  case class List(typ: AttributeType) extends AttributeType
+  case class Opt(typ: AttributeType) extends AttributeType
+  case class Trait(name: String) extends AttributeType
+
 }
-case class Attribute(`type`: AttributeType, id: Int, name: String) {
+
+/*case class AttributeType(`type`: String, childType: Option[AttributeType]) {
+  val typ = `type`
+}*/
+
+case class Attribute(`type`: Types.AttributeType, id: Int, name: String) {
   val typ = `type`
 }
 
@@ -61,6 +80,8 @@ case class Enum(name: String, values: Vector[EnumValue]) extends NamedItem {
 case class EnumValue(id: Int, name: String)
 
 trait JsonFormats extends DefaultJsonProtocol with Hacks {
+  val aliases: Map[String, String]
+
   implicit val traitFormat = jsonFormat1(Trait)
   implicit val traitExtFormat = jsonFormat2(TraitExt)
 
@@ -94,25 +115,36 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
         deserializationError("Alias should be a JsObject")
     }
   }
-  implicit object attributeTypeFormat extends RootJsonFormat[AttributeType] {
-    def write(typ: AttributeType): JsValue = throw new NotImplementedError()
+
+  implicit object attributeTypeFormat extends RootJsonFormat[Types.AttributeType] {
+    def write(typ: Types.AttributeType): JsValue = throw new NotImplementedError()
 
     def read(value: JsValue) = value match {
-      case JsString(typName) => AttributeType(typName, None)
-      case obj: JsObject =>
-        val optAttributeType = for {
-          jsTypName <- obj.fields.get("type")
-          jsTyp <- obj.fields.get("childType")
-        } yield {
-          jsTypName match {
-            case JsString(typName) =>
-              AttributeType(typName, Some(read(jsTyp)))
-            case _ =>
-              deserializationError("Attribute type should be a JsString")
-          }
-        }
+      case JsString(typName) => typName match {
+        case "int32" => Types.Int32
+        case "int64" => Types.Int64
+        case "double" => Types.Double
+        case "string" => Types.String
+        case "bool" => Types.Bool
+        case "bytes" => Types.Bytes
+        case unsupported => deserializationError(s"Unknown type $unsupported%s")
+      }
 
-        optAttributeType getOrElse (deserializationError("Both type and childType fields are required for attribute type"))
+      case obj: JsObject =>
+        obj.getFields("type", "childType") match {
+          case Seq(JsString("struct"), JsString(structName)) =>
+            Types.Struct(structName)
+          case Seq(JsString("enum"), JsString(enumName)) =>
+            Types.Enum(enumName)
+          case Seq(JsString("list"), childType) =>
+            Types.List(read(childType))
+          case Seq(JsString("opt"), childType) =>
+            Types.Opt(read(childType))
+          case Seq(JsString("alias"), JsString(aliasName)) =>
+            aliases.get(aliasName) map (t => read(JsString(t))) getOrElse(deserializationError(f"Unknown alias $aliasName%s"))
+          case Seq(JsString("trait"), JsString(traitName)) =>
+            Types.Trait(traitName)
+        }
       case _ =>
         deserializationError("Attribute type should be JsString or JsObject")
     }

@@ -10,33 +10,26 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
     PARAM("partialMessage", valueCache("Any"))
   )
 
-  private def partialTypeDef(packageName: String, name: String, attributes: Vector[Attribute], aliases: Aliases): Option[Vector[Tree]] = {
-    def partialAttrType(typ: AttributeType, aliases: Aliases): Type = typ match {
-      case AttributeType("int32", None) => optionType(IntClass)
-      case AttributeType("int64", None) => optionType(LongClass)
-      case AttributeType("double", None) => optionType(DoubleClass)
-      case AttributeType("string", None) => optionType(StringClass)
-      case AttributeType("bool", None) => optionType(BooleanClass)
-      case AttributeType("bytes", None) => optionType(arrayType(ByteClass))
-      case AttributeType("struct", Some(child)) =>
-        partialAttrType(child, aliases)
-      case AttributeType("enum", Some(AttributeType(enumName, _))) =>
+  private def partialTypeDef(packageName: String, name: String, attributes: Vector[Attribute]): Option[Vector[Tree]] = {
+    def partialAttrType(typ: Types.AttributeType): Type = typ match {
+      case Types.Int32 => optionType(IntClass)
+      case Types.Int64 => optionType(LongClass)
+      case Types.Double => optionType(DoubleClass)
+      case Types.String => optionType(StringClass)
+      case Types.Bool => optionType(BooleanClass)
+      case Types.Bytes => optionType(arrayType(ByteClass))
+      case Types.Struct(structName) =>
+        eitherType(f"Refs.$structName%s.Partial", f"Refs.$structName%s")
+      case Types.Enum(enumName) =>
         optionType(f"Refs.$enumName%s")
-      case AttributeType("list", Some(t @ AttributeType("struct" | "enum", _))) =>
-        vectorType(partialAttrType(t, aliases))
-      case AttributeType("list", Some(child)) =>
-        vectorType(attrType(child, aliases))
-      case AttributeType("opt", Some(child)) =>
-        optionType(partialAttrType(child, aliases))
-      case AttributeType("alias", Some(AttributeType(aliasName, None))) =>
-        aliases.get(aliasName) match {
-          case Some(typ) => partialAttrType(AttributeType(typ, None), aliases)
-          case None => throw new Exception(f"Alias $aliasName%s is missing")
-        }
-      case AttributeType("trait", Some(AttributeType(traitName, None))) =>
+      case Types.List(typ @ (Types.Struct(_) | Types.Enum(_))) =>
+        vectorType(partialAttrType(typ))
+      case Types.List(typ) =>
+        vectorType(attrType(typ))
+      case Types.Opt(typ) =>
+        optionType(partialAttrType(typ))
+      case Types.Trait(traitName) =>
         eitherType("Any", f"Refs.$traitName%s")
-      case AttributeType(name, None) =>
-        eitherType(f"Refs.$name%s.Partial", f"Refs.$name%s")
     }
 
     val (params, forExprs) = attributes.sortBy(_.id).foldLeft[
@@ -44,11 +37,11 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
     ]((Vector.empty, Vector.empty)) {
       case ((params, forExprs), attr) =>
         attr.typ match {
-          case typ @ AttributeType("list", Some(AttributeType("struct" | "enum", _))) =>
+          case typ @ Types.List(listType @ (Types.Struct(_) | Types.Enum(_))) =>
             val eithersAttr = f"eithers${attr.name}%s"
 
             (
-              params :+ PARAM(eithersAttr, partialAttrType(attr.typ, aliases)).tree,
+              params :+ PARAM(eithersAttr, partialAttrType(attr.typ)).tree,
               forExprs :+ (
                 // TODO: optimize here
                 VALFROM(attr.name) := BLOCK(
@@ -73,21 +66,21 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
                 )
               )
             )
-          case typ @ AttributeType("list", _) =>
+          case typ @ Types.List(_) =>
             (
-              params :+ PARAM(attr.name, partialAttrType(attr.typ, aliases)).tree,
+              params :+ PARAM(attr.name, partialAttrType(attr.typ)).tree,
               forExprs
             )
-          case typ @ AttributeType("struct" | "trait", _) =>
+          case typ @ (Types.Struct(_) | Types.Trait(_)) =>
             val eitherAttr = f"either${attr.name}%s"
             (
-              params :+ PARAM(eitherAttr, partialAttrType(typ, aliases)).tree,
+              params :+ PARAM(eitherAttr, partialAttrType(typ)).tree,
               forExprs :+ (VALFROM(attr.name) := REF(eitherAttr) DOT("right") DOT("toOption"))
             )
-          case typ @ AttributeType("opt", Some(AttributeType("struct" | "trait", _))) =>
+          case typ @ Types.Opt(optType @ (Types.Struct(_) | Types.Trait(_))) =>
             val opteitherAttr = f"opteither${attr.name}%s"
             (
-              params :+ PARAM(opteitherAttr, optionType(partialAttrType(typ, aliases))).tree,
+              params :+ PARAM(opteitherAttr, optionType(partialAttrType(typ))).tree,
               forExprs :+ (
                 VALFROM(attr.name) := BLOCK(
                   REF(opteitherAttr) MATCH(
@@ -115,7 +108,7 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
           case typ =>
             val optAttr = f"opt${attr.name}%s"
             (
-              params :+ PARAM(optAttr, partialAttrType(attr.typ, aliases)).tree,
+              params :+ PARAM(optAttr, partialAttrType(attr.typ)).tree,
               forExprs :+ (VALFROM(attr.name) := REF(optAttr))
             )
         }
@@ -143,13 +136,13 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
       )
 
       def emptyValue(attr: Attribute) = attr.typ match {
-        case AttributeType("list", _) => EmptyVector
-        case AttributeType("opt", _) => REF("Some") APPLY(REF("None"))
-        case AttributeType("struct", Some(AttributeType(structName, _))) =>
+        case Types.List(_) => EmptyVector
+        case Types.Opt(_) => REF("Some") APPLY(REF("None"))
+        case Types.Struct(structName) =>
           REF("Left") APPLY(
             REF("Refs") DOT(structName) DOT("Partial") DOT("empty")
           )
-        case AttributeType("trait", Some(AttributeType(_, _))) =>
+        case Types.Trait(_) =>
           REF("Left") APPLY(UNIT)
         case _ => REF("None")
       }
@@ -191,26 +184,23 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
     }
   }
 
-  protected def deserializationTrees(packageName: String, name: String, attributes: Vector[Attribute], aliases: Aliases): Vector[Tree] = {
-    def reader(typ: AttributeType): Tree = typ match {
-      case AttributeType(t, None) =>
-        val fn = t match {
-          case "int32" => "readInt32"
-          case "int64" => "readInt64"
-          case "bool" => "readBool"
-          case "double" => "readDouble"
-          case "string" => "readString"
-          case "bytes" => "readBytes().toByteArray"
-        }
+  protected def deserializationTrees(packageName: String, name: String, attributes: Vector[Attribute]): Vector[Tree] = {
+    def simpleReader(fn: String) = REF("in") DOT(fn) APPLY()
 
-        REF("in") DOT(fn) APPLY()
-      case AttributeType("opt", Some(optAttrType)) =>
+    def reader(typ: Types.AttributeType): Tree = typ match {
+      case Types.Int32 => simpleReader("readInt32")
+      case Types.Int64 => simpleReader("readInt64")
+      case Types.Bool => simpleReader("readBool")
+      case Types.Double => simpleReader("readDouble")
+      case Types.String => simpleReader("readString")
+      case Types.Bytes => simpleReader("readBytes().toByteArray")
+      case Types.Opt(optAttrType) =>
         SOME(reader(optAttrType))
-      case AttributeType("list", Some(AttributeType("struct", Some(AttributeType(structName, _))))) =>
+      case Types.List(Types.Struct(structName)) =>
         BLOCK(
           REF("Refs") DOT(structName) DOT("parseFrom") APPLY(REF("in"))
         )
-      case AttributeType("list", Some(listAttrType)) =>
+      case Types.List(listAttrType) =>
         BLOCK(
           VAL("length") := REF("in") DOT("readRawVarint32") APPLY(),
           VAL("limit") := REF("in") DOT("pushLimit") APPLY(REF("length")),
@@ -225,7 +215,7 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
 
           REF("values")
         )
-      case AttributeType("struct", Some(AttributeType(structName, _))) =>
+      case Types.Struct(structName) =>
         BLOCK(
           VAL("length") := REF("in") DOT("readRawVarint32") APPLY(),
           VAL("oldLimit") := REF("in") DOT("pushLimit") APPLY(REF("length")),
@@ -237,18 +227,13 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
 
           REF("message")
         )
-      case AttributeType("enum", Some(AttributeType(enumName, _))) =>
+      case Types.Enum(enumName) =>
         BLOCK(
           REF("Refs") DOT(enumName) APPLY(
             REF("in") DOT("readEnum") APPLY()
           )
         )
-      case AttributeType("alias", Some(AttributeType(aliasName, _))) =>
-        aliases.get(aliasName) match {
-          case Some(typ) => reader(AttributeType(typ, None))
-          case None => throw new Exception(f"Alias $aliasName%s is missing")
-        }
-      case AttributeType("trait", Some(AttributeType(traitName, None))) =>
+      case Types.Trait(traitName) =>
         val extTypeField = extTypeName(name)
 
         REF("partialMessage") DOT(f"opt$extTypeField%s") MATCH(
@@ -265,24 +250,24 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
         BLOCK().withComment(attr.toString)
     }
 
-    def readCaseBody(attrName: String, attrType: AttributeType, appendOp: Option[String]): Tree = {
+    def readCaseBody(attrName: String, attrType: Types.AttributeType, appendOp: Option[String]): Tree = {
       REF("doParse") APPLY(
         REF("partialMessage") DOT("copy") APPLY(
           appendOp match {
             case Some(op) =>
               attrType match {
-                case AttributeType("list", Some(AttributeType("struct", _))) =>
+                case Types.List(Types.Struct(_)) =>
                   val eithersName = f"eithers$attrName%s"
                   REF(eithersName) := REF("partialMessage") DOT(eithersName) INFIX(op) APPLY(reader(attrType))
                 case _ => REF(attrName) := REF("partialMessage") DOT(attrName) INFIX(op) APPLY(reader(attrType))
               }
             case None =>
               attrType match {
-                case AttributeType("struct" | "trait", _) =>
+                case Types.Struct(_) | Types.Trait(_) =>
                   REF(f"either$attrName%s") := reader(attrType)
-                case AttributeType("opt", Some(AttributeType("struct" | "trait", _))) =>
+                case Types.Opt(Types.Struct(_) | Types.Trait(_)) =>
                   REF(f"opteither$attrName%s") := SOME(reader(attrType))
-                case AttributeType("list", Some(AttributeType("struct", _))) =>
+                case Types.List(Types.Struct(_)) =>
                   REF(f"eithers$attrName%s") := reader(attrType)
                 case _ =>
                   REF(f"opt$attrName%s") := REF("Some") APPLY(reader(attrType))
@@ -293,32 +278,24 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
     }
 
     @annotation.tailrec
-    def wireType(attrType: AttributeType): Int = {
+    def wireType(attrType: Types.AttributeType): Int = {
       attrType match {
-        case AttributeType(t, None) =>
-          t match {
-            case "int32" | "int64" | "bool" => WireFormat.WIRETYPE_VARINT
-            case "string" | "bytes" => WireFormat.WIRETYPE_LENGTH_DELIMITED
-            case "double" => WireFormat.WIRETYPE_FIXED64
-            case unsupported => throw new Exception(f"Unsupported wire type: $unsupported%s")
-          }
-        case AttributeType("alias", Some(AttributeType(aliasName, None))) =>
-          aliases.get(aliasName) match {
-            case Some(typ) => wireType(AttributeType(typ, None))
-            case None => throw new Exception(f"Alias $aliasName%s is missing")
-          }
-        case AttributeType("opt", Some(optAttrType)) =>
+        case Types.Int32 | Types.Int64 | Types.Bool => WireFormat.WIRETYPE_VARINT
+        case Types.String | Types.Bytes => WireFormat.WIRETYPE_LENGTH_DELIMITED
+        case Types.Double => WireFormat.WIRETYPE_FIXED64
+        case Types.Opt(optAttrType) =>
           wireType(optAttrType)
-        case AttributeType("list", Some(listAttrType)) =>
+        case Types.List(listAttrType) =>
           wireType(listAttrType)
-        case AttributeType("enum", Some(_)) =>
+        case Types.Enum(_) =>
           WireFormat.WIRETYPE_VARINT
-        case AttributeType("struct" | "enum" | "trait", Some(_)) =>
+        case Types.Struct(_) | Types.Trait(_) =>
           WireFormat.WIRETYPE_LENGTH_DELIMITED
+        case unsupported => throw new Exception(f"Unsupported wire type: $unsupported%s")
       }
     }
 
-    val optPartialTypeDef = partialTypeDef(packageName, name, attributes, aliases)
+    val optPartialTypeDef = partialTypeDef(packageName, name, attributes)
 
     val parseDef =
       optPartialTypeDef match {
@@ -327,8 +304,8 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
             val baseCaseExpr = CASE(LIT((attr.id << 3) | wireType(attr.typ)))
 
             attr.typ match {
-              case typ @ AttributeType("list", Some(listAttrType)) =>
-                if (listAttrType.typ == "struct") {
+              case typ @ Types.List(listAttrType) =>
+                if (listAttrType.isInstanceOf[Types.Struct]) {
                   val baseCase = baseCaseExpr ==> BLOCK(
                     readCaseBody(attr.name, typ, Some(":+"))
                   )

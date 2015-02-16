@@ -6,48 +6,48 @@ import scala.language.postfixOps
 import scala.collection.mutable
 import spray.json._, DefaultJsonProtocol._
 
-object Json2Tree extends JsonFormats with JsonHelpers with DeserializationTrees {
-  def convert(jsonString: String): String = {
-    val jsonAst = jsonString.parseJson
-    val rootObj = jsonAst.convertTo[JsObject]
+class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with DeserializationTrees {
+  val jsonAst = jsonString.parseJson
+  val rootObj = jsonAst.convertTo[JsObject]
 
-    rootObj.withField("aliases") {
+  val aliases: Map[String, String] = rootObj.withField("aliases") {
       case JsArray(jsAliases) =>
-        val aliases: Aliases = jsAliases.map { jsAlias =>
+        jsAliases.map { jsAlias =>
           val alias = aliasFormat.read(jsAlias)
           (alias.alias, alias.typ)
         }.toMap
-
-        val refsTreesSeq: Vector[(Vector[Tree], Tree)] = rootObj.fields("sections").convertTo[JsArray].elements map {
-          case obj: JsObject =>
-            obj.fields("package") match {
-              case JsString(packageName) =>
-                val (globalRefs, block) = itemsBlock(packageName, obj.fields("items").convertTo[JsArray].elements, aliases)
-
-                (globalRefs, PACKAGE(packageName) := block)
-              case _ =>
-                throw new Exception("package field is not a JsString")
-            }
-          case _ =>
-            throw new Exception("section is not a JsObject")
-        }
-
-        val (globalRefsV, packageTrees) = refsTreesSeq.unzip
-
-        val globalRefsTree = OBJECTDEF("Refs") := BLOCK(globalRefsV.flatten)
-
-        val updateBoxDef = TRAITDEF("UpdateBox").tree
-        val updateDef = TRAITDEF("Update").tree
-        val rpcRequestDef = TRAITDEF("RpcRequest").tree
-        val rpcResponseDef = TRAITDEF("RpcResponse").tree
-
-        val tree = PACKAGE("im.actor.api") := BLOCK(
-          packageTrees ++ Vector(
-            globalRefsTree, parseExceptionDef, updateBoxDef, updateDef, rpcRequestDef, rpcResponseDef
-          ))
-        treeToString(tree)
       case _ => deserializationError("Aliases should be JsArray")
     }
+
+  def convert(): String = {
+    val refsTreesSeq: Vector[(Vector[Tree], Tree)] = rootObj.fields("sections").convertTo[JsArray].elements map {
+      case obj: JsObject =>
+        obj.fields("package") match {
+          case JsString(packageName) =>
+            val (globalRefs, block) = itemsBlock(packageName, obj.fields("items").convertTo[JsArray].elements)
+
+            (globalRefs, PACKAGE(packageName) := block)
+          case _ =>
+            throw new Exception("package field is not a JsString")
+        }
+      case _ =>
+        throw new Exception("section is not a JsObject")
+    }
+
+    val (globalRefsV, packageTrees) = refsTreesSeq.unzip
+
+    val globalRefsTree = OBJECTDEF("Refs") := BLOCK(globalRefsV.flatten)
+
+    val updateBoxDef = TRAITDEF("UpdateBox").tree
+    val updateDef = TRAITDEF("Update").tree
+    val rpcRequestDef = TRAITDEF("RpcRequest").tree
+    val rpcResponseDef = TRAITDEF("RpcResponse").tree
+
+    val tree = PACKAGE("im.actor.api") := BLOCK(
+      packageTrees ++ Vector(
+        globalRefsTree, parseExceptionDef, updateBoxDef, updateDef, rpcRequestDef, rpcResponseDef
+      ))
+    treeToString(tree)
   }
 
   private type TreesTraitsChildren = (Vector[Tree], Vector[Tree], Vector[Trait], Vector[NamedItem])
@@ -78,7 +78,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with DeserializationTrees 
       a._4 ++ b._3
     )
 
-  private def itemsBlock(packageName: String, jsonElements: Vector[JsValue], aliases: Aliases): (Vector[Tree], Tree) = {
+  private def itemsBlock(packageName: String, jsonElements: Vector[JsValue]): (Vector[Tree], Tree) = {
     val (globalRefs, trees, traits, allChildren): TreesTraitsChildren = jsonElements.foldLeft[TreesTraitsChildren](
       (Vector.empty, Vector.empty, Vector.empty, Vector.empty)
     ) {
@@ -87,38 +87,38 @@ object Json2Tree extends JsonFormats with JsonHelpers with DeserializationTrees 
           case JsString("rpc") =>
             obj.withObjectField("content") { o =>
               val rpc = o.convertTo[RpcContent]
-              merge(trees, rpcItemTrees(packageName, rpc, aliases))
+              merge(trees, rpcItemTrees(packageName, rpc))
             }
           case JsString("response") =>
             obj.withObjectField("content") { o =>
               val response = o.convertTo[NamedRpcResponse]
-              merge(trees, namedResponseItemTrees(packageName, response, aliases))
+              merge(trees, namedResponseItemTrees(packageName, response))
             }
           case JsString("update") =>
             obj.withObjectField("content") { o =>
               val update = o.convertTo[Update]
-              merge(trees, updateItemTrees(packageName, update, aliases))
+              merge(trees, updateItemTrees(packageName, update))
             }
           case JsString("update_box") =>
             obj.withObjectField("content") { o =>
               val ub = o.convertTo[UpdateBox]
-              merge(trees, updateBoxItemTrees(packageName, ub, aliases))
+              merge(trees, updateBoxItemTrees(packageName, ub))
             }
           case JsString("struct") =>
             obj.withObjectField("content") { o =>
               val struct = o.convertTo[Struct]
-              merge(trees, structItemTrees(packageName, struct, aliases))
+              merge(trees, structItemTrees(packageName, struct))
             }
           case JsString("enum") =>
             obj.withObjectField("content") { o =>
               val enum = o.convertTo[Enum]
-              merge(trees, enumItemTrees(packageName, enum, aliases))
+              merge(trees, enumItemTrees(packageName, enum))
             }
           case JsString("trait") =>
             obj.withObjectField("content") { o =>
               val trai = o.convertTo[Trait]
               merge(trees, Vector(trai))
-              //merge(trees, traitItemTrees(packageName, trai, aliases))
+              //merge(trees, traitItemTrees(packageName, trai))
             }
           case JsString("comment") => trees
           case JsString("empty") => trees
@@ -130,7 +130,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with DeserializationTrees 
     }
 
     val (traitGlobalRefsV, traitTreesV): (Vector[Vector[Tree]], Vector[Vector[Tree]]) = (traits map (trai =>
-      traitItemTrees(packageName, trai, aliases, allChildren.filter(_.traitExt.map(_.name) == Some(trai.name)))
+      traitItemTrees(packageName, trai, allChildren.filter(_.traitExt.map(_.name) == Some(trai.name)))
     )).unzip
 
     (globalRefs ++ traitGlobalRefsV.flatten, BLOCK(trees ++ traitTreesV.flatten))
@@ -140,10 +140,10 @@ object Json2Tree extends JsonFormats with JsonHelpers with DeserializationTrees 
   private def dec2headerDef(decHeader: Int): Tree =
     VAL("header") := LIT(decHeader)
 
-  private def rpcItemTrees(packageName: String, rpc: RpcContent, aliases: Aliases): (Vector[Tree], Vector[Tree]) = {
+  private def rpcItemTrees(packageName: String, rpc: RpcContent): (Vector[Tree], Vector[Tree]) = {
     val className = f"Request${rpc.name}%s"
 
-    val params = paramsTrees(rpc.attributes, aliases)
+    val params = paramsTrees(rpc.attributes)
 
     val (responseRef, (globalResponseRefs, responseTrees)) = rpc.response match {
       case ReferenceRpcResponse(name) =>
@@ -154,7 +154,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with DeserializationTrees 
       case resp: AnonymousRpcResponse =>
         (
           REF(f"Refs.Response${rpc.name}%s"),
-          namedResponseItemTrees(packageName, resp.toNamed(rpc.name), aliases)
+          namedResponseItemTrees(packageName, resp.toNamed(rpc.name))
         )
     }
 
@@ -164,8 +164,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with DeserializationTrees 
     val serTrees = deserializationTrees(
       packageName,
       className,
-      rpc.attributes,
-      aliases
+      rpc.attributes
     )
 
     val objectTrees = Vector(headerDef, responseRefDef) ++ serTrees
@@ -184,20 +183,19 @@ object Json2Tree extends JsonFormats with JsonHelpers with DeserializationTrees 
     */
   private def namedResponseItemTrees(
     packageName: String,
-    resp: NamedRpcResponse,
-    aliases: Aliases
+    resp: NamedRpcResponse
   ): (Vector[Tree], Vector[Tree]) = {
     val className = f"Response${resp.name}%s"
 
-    val params = paramsTrees(resp.attributes, aliases)
+    val params = paramsTrees(resp.attributes)
 
     val headerDef = dec2headerDef(resp.header)
-    val serTrees = deserializationTrees(packageName, className, resp.attributes, aliases)
+    val serTrees = deserializationTrees(packageName, className, resp.attributes)
 
     classWithCompanion(packageName, className, Vector(valueCache("RpcResponse")), params, Vector(headerDef) ++ serTrees)
   }
 
-  private def traitItemTrees(packageName: String, trai: Trait, aliases: Aliases, children: Vector[NamedItem]): (Vector[Tree], Vector[Tree]) = {
+  private def traitItemTrees(packageName: String, trai: Trait, children: Vector[NamedItem]): (Vector[Tree], Vector[Tree]) = {
     val globalRefs = Vector(
       TYPEVAR(trai.name) := REF(f"$packageName%s.${trai.name}%s"),
       VAL(trai.name) := REF(f"$packageName%s.${trai.name}%s")
@@ -216,23 +214,22 @@ object Json2Tree extends JsonFormats with JsonHelpers with DeserializationTrees 
     )
   }
 
-  private def updateItemTrees(packageName: String, update: Update, aliases: Aliases): (Vector[Tree], Vector[Tree]) = {
+  private def updateItemTrees(packageName: String, update: Update): (Vector[Tree], Vector[Tree]) = {
     val className = f"Update${update.name}%s"
-    val params = paramsTrees(update.attributes, aliases)
+    val params = paramsTrees(update.attributes)
     val headerDef = dec2headerDef(update.header)
 
     val serTrees = deserializationTrees(
       packageName,
       className,
-      update.attributes,
-      aliases
+      update.attributes
     )
 
     classWithCompanion(packageName, className, Vector(valueCache("Update")), params, Vector(headerDef) ++ serTrees)
   }
 
-  private def updateBoxItemTrees(packageName: String, ub: UpdateBox, aliases: Aliases): (Vector[Tree], Vector[Tree]) = {
-    val params = paramsTrees(ub.attributes, aliases)
+  private def updateBoxItemTrees(packageName: String, ub: UpdateBox): (Vector[Tree], Vector[Tree]) = {
+    val params = paramsTrees(ub.attributes)
 
     if (params.isEmpty) {
       (
@@ -247,14 +244,13 @@ object Json2Tree extends JsonFormats with JsonHelpers with DeserializationTrees 
     }
   }
 
-  private def structItemTrees(packageName: String, struct: Struct, aliases: Aliases): TreesChildren = {
-    val params = paramsTrees(struct.attributes, aliases)
+  private def structItemTrees(packageName: String, struct: Struct): TreesChildren = {
+    val params = paramsTrees(struct.attributes)
 
     val serTrees = deserializationTrees(
       packageName,
       struct.name,
-      struct.attributes,
-      aliases
+      struct.attributes
     )
 
     val (parents, traitChildren) = struct.`trait` match {
@@ -273,7 +269,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with DeserializationTrees 
   }
 
   // TODO: use custom json formatters here
-  private def enumItemTrees(packageName: String, enum: Enum, aliases: Aliases): (Vector[Tree], Vector[Tree]) = {
+  private def enumItemTrees(packageName: String, enum: Enum): (Vector[Tree], Vector[Tree]) = {
     if (enum.values.length > 0) {
       val valuesTrees = enum.values map {
         case EnumValue(id, name) =>
@@ -300,9 +296,9 @@ object Json2Tree extends JsonFormats with JsonHelpers with DeserializationTrees 
     }
   }
 
-  private def paramsTrees(attributes: Vector[Attribute], aliases: Aliases): Vector[ValDef] = {
+  private def paramsTrees(attributes: Vector[Attribute]): Vector[ValDef] = {
     attributes.sortBy(_.id) map { attr =>
-      PARAM(attr.name, attrType(attr.typ, aliases)).tree
+      PARAM(attr.name, attrType(attr.typ)).tree
     }
   }
 

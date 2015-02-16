@@ -9,8 +9,8 @@ class GeneratorSpec extends Specification {
 
   def e1 = {
 
-    val genSource = Json2Tree.convert(jsonSchema)
-    //println(genSource)
+    val genSource = (new Json2Tree(jsonSchema)).convert
+    println(genSource)
     genSource should_==(expectedSource)
   }
 

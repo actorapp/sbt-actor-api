@@ -22,7 +22,7 @@ object SbtActorApi extends AutoPlugin {
     if (!schemaFile.exists) {
       log.info(f"Nothing to generate in $srcDir%s")
     } else {
-      val tree = Json2Tree.convert(IO.read(schemaFile))
+      val tree = (new Json2Tree(IO.read(schemaFile))).convert()
       println(tree)
     }
   }
