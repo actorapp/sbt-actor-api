@@ -5,7 +5,7 @@ import scala.language.postfixOps
 import treehugger.forest._, definitions._
 import treehuggerDSL._
 
-trait SerializationTrees extends TreeHelpers with Hacks {
+trait DeserializationTrees extends TreeHelpers with Hacks {
   protected val parseExceptionDef: Tree = CLASSDEF("ParseException") withParents(REF("Exception")) withParams(
     PARAM("partialMessage", valueCache("Any"))
   )
@@ -166,7 +166,7 @@ trait SerializationTrees extends TreeHelpers with Hacks {
     }
   }
 
-  protected def traitSerializationTrees(traitName: String, children: Vector[NamedItem]): Vector[Tree] = {
+  protected def traitDeserializationTrees(traitName: String, children: Vector[NamedItem]): Vector[Tree] = {
     if (children.length > 0) {
       val parseFromDef = DEF("parseFrom", eitherType("Any", valueCache(traitName))) withParams(
         PARAM("in", valueCache("com.google.protobuf.CodedInputStream")),
@@ -191,7 +191,7 @@ trait SerializationTrees extends TreeHelpers with Hacks {
     }
   }
 
-  protected def serializationTrees(packageName: String, name: String, attributes: Vector[Attribute], aliases: Aliases): Vector[Tree] = {
+  protected def deserializationTrees(packageName: String, name: String, attributes: Vector[Attribute], aliases: Aliases): Vector[Tree] = {
     def reader(typ: AttributeType): Tree = typ match {
       case AttributeType(t, None) =>
         val fn = t match {

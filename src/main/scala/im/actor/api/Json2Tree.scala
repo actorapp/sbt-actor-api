@@ -6,7 +6,7 @@ import scala.language.postfixOps
 import scala.collection.mutable
 import spray.json._, DefaultJsonProtocol._
 
-object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
+object Json2Tree extends JsonFormats with JsonHelpers with DeserializationTrees {
   def convert(jsonString: String): String = {
     val jsonAst = jsonString.parseJson
     val rootObj = jsonAst.convertTo[JsObject]
@@ -161,7 +161,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
     val headerDef = dec2headerDef(rpc.header)
     val responseRefDef = VAL("Response") := responseRef
 
-    val serTrees = serializationTrees(
+    val serTrees = deserializationTrees(
       packageName,
       className,
       rpc.attributes,
@@ -192,7 +192,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
     val params = paramsTrees(resp.attributes, aliases)
 
     val headerDef = dec2headerDef(resp.header)
-    val serTrees = serializationTrees(packageName, className, resp.attributes, aliases)
+    val serTrees = deserializationTrees(packageName, className, resp.attributes, aliases)
 
     classWithCompanion(packageName, className, Vector(valueCache("RpcResponse")), params, Vector(headerDef) ++ serTrees)
   }
@@ -207,7 +207,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
 
     // TODO: move to SerializationTrees
     val objDef = OBJECTDEF(trai.name) := BLOCK(
-      traitSerializationTrees(trai.name, children)
+      traitDeserializationTrees(trai.name, children)
     )
 
     (
@@ -221,7 +221,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
     val params = paramsTrees(update.attributes, aliases)
     val headerDef = dec2headerDef(update.header)
 
-    val serTrees = serializationTrees(
+    val serTrees = deserializationTrees(
       packageName,
       className,
       update.attributes,
@@ -250,7 +250,7 @@ object Json2Tree extends JsonFormats with JsonHelpers with SerializationTrees {
   private def structItemTrees(packageName: String, struct: Struct, aliases: Aliases): TreesChildren = {
     val params = paramsTrees(struct.attributes, aliases)
 
-    val serTrees = serializationTrees(
+    val serTrees = deserializationTrees(
       packageName,
       struct.name,
       struct.attributes,
