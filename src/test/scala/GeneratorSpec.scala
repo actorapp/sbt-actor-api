@@ -8,9 +8,12 @@ class GeneratorSpec extends Specification {
   """
 
   def e1 = {
-    val source = scala.io.Source.fromURL(getClass.getResource("/actor.json"))
-    val tree = Json2Tree.convert(source.getLines.mkString("\n"))
-    println(tree)
-    success
+
+    val genSource = Json2Tree.convert(jsonSchema)
+    //println(genSource)
+    genSource should_==(expectedSource)
   }
+
+  private lazy val jsonSchema = scala.io.Source.fromURL(getClass.getResource("/actor.json")).getLines.mkString("\n")
+  private lazy val expectedSource = scala.io.Source.fromURL(getClass.getResource("/expected.scala")).getLines.mkString("\n")
 }
