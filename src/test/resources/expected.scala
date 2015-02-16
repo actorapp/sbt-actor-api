@@ -9782,7 +9782,7 @@ package im.actor.api {
       }
     }
   }
-  object Refs {
+  private[api] object Refs {
     type RequestSendAuthCode = auth.RequestSendAuthCode
     val RequestSendAuthCode = auth.RequestSendAuthCode
     type ResponseSendAuthCode = auth.ResponseSendAuthCode

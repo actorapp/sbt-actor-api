@@ -36,7 +36,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
 
     val (globalRefsV, packageTrees) = refsTreesSeq.unzip
 
-    val globalRefsTree = OBJECTDEF("Refs") := BLOCK(globalRefsV.flatten)
+    val globalRefsTree = OBJECTDEF("Refs") withFlags(PRIVATEWITHIN("api")) := BLOCK(globalRefsV.flatten)
 
     val updateBoxDef = TRAITDEF("UpdateBox").tree
     val updateDef = TRAITDEF("Update").tree
