@@ -23,7 +23,8 @@ object SbtActorApi extends AutoPlugin {
       log.info(f"Nothing to generate in $srcDir%s")
     } else {
       val tree = (new Json2Tree(IO.read(schemaFile))).convert()
-      println(tree)
+      val targetFile = targetDir / "actor.scala"
+      IO.write(targetFile, tree)
     }
   }
 
