@@ -31,6 +31,8 @@ object Types {
 
 case class Attribute(`type`: Types.AttributeType, id: Int, name: String) {
   val typ = `type`
+
+  def withType(typ: Types.AttributeType) = copy(`type` = typ)
 }
 
 trait Item {

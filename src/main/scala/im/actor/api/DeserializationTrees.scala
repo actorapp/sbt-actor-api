@@ -193,7 +193,7 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
       case Types.Bool => simpleReader("readBool")
       case Types.Double => simpleReader("readDouble")
       case Types.String => simpleReader("readString")
-      case Types.Bytes => simpleReader("readBytes().toByteArray")
+      case Types.Bytes => simpleReader("readByteArray")
       case Types.Opt(optAttrType) =>
         SOME(reader(optAttrType))
       case Types.List(Types.Struct(structName)) =>
@@ -238,7 +238,7 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
 
         REF("partialMessage") DOT(f"opt$extTypeField%s") MATCH(
           CASE(REF("Some") APPLY(REF("extType"))) ==> BLOCK(
-            VAL("bytes") := REF("in") DOT("readBytes") APPLY() DOT("toByteArray"),
+            VAL("bytes") := REF("in") DOT("readByteArray") APPLY(),
 
             VAL("stream") := valueCache("com.google.protobuf.CodedInputStream") DOT("newInstance") APPLY(REF("bytes")),
 

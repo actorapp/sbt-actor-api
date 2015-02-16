@@ -1,6 +1,22 @@
 package im.actor.api {
   package auth {
-    case class RequestSendAuthCode(phoneNumber: Long, appId: Int, apiKey: String) extends RpcRequest
+    case class RequestSendAuthCode(phoneNumber: Long, appId: Int, apiKey: String) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt64(1, phoneNumber)
+        out.writeInt32(2, appId)
+        out.writeString(3, apiKey)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt64Size(1, phoneNumber)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, appId)) + (com.google.protobuf.CodedOutputStream.computeStringSize(3, apiKey))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestSendAuthCode {
       val header = 1
       val Response = Refs.ResponseSendAuthCode
@@ -39,7 +55,22 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseSendAuthCode(smsHash: String, isRegistered: Boolean) extends RpcResponse
+    case class ResponseSendAuthCode(smsHash: String, isRegistered: Boolean) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeString(1, smsHash)
+        out.writeBool(2, isRegistered)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeStringSize(1, smsHash)) + (com.google.protobuf.CodedOutputStream.computeBoolSize(2, isRegistered))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseSendAuthCode {
       val header = 2
       case class Partial(optsmsHash: Option[String], optisRegistered: Option[Boolean]) {
@@ -73,7 +104,24 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSendAuthCall(phoneNumber: Long, smsHash: String, appId: Int, apiKey: String) extends RpcRequest
+    case class RequestSendAuthCall(phoneNumber: Long, smsHash: String, appId: Int, apiKey: String) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt64(1, phoneNumber)
+        out.writeString(2, smsHash)
+        out.writeInt32(3, appId)
+        out.writeString(4, apiKey)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt64Size(1, phoneNumber)) + (com.google.protobuf.CodedOutputStream.computeStringSize(2, smsHash)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(3, appId)) + (com.google.protobuf.CodedOutputStream.computeStringSize(4, apiKey))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestSendAuthCall {
       val header = 90
       val Response = Refs.ResponseVoid
@@ -116,7 +164,33 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseAuth(publicKeyHash: Long, user: Refs.User, config: Refs.Config) extends RpcResponse
+    case class ResponseAuth(publicKeyHash: Long, user: Refs.User, config: Refs.Config) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt64(1, publicKeyHash)
+        out.writeTag(2, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(user.getSerializedSize)
+        user.writeTo(out)
+        out.writeTag(3, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(config.getSerializedSize)
+        config.writeTo(out)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt64Size(1, publicKeyHash)) + ({
+          val size = user.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(2) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + ({
+          val size = config.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(3) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        })
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseAuth {
       val header = 5
       case class Partial(optpublicKeyHash: Option[Long], eitheruser: Either[Refs.User.Partial, Refs.User], eitherconfig: Either[Refs.Config.Partial, Refs.Config]) {
@@ -168,7 +242,28 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSignIn(phoneNumber: Long, smsHash: String, smsCode: String, publicKey: Array[Byte], deviceHash: Array[Byte], deviceTitle: String, appId: Int, appKey: String) extends RpcRequest
+    case class RequestSignIn(phoneNumber: Long, smsHash: String, smsCode: String, publicKey: Array[Byte], deviceHash: Array[Byte], deviceTitle: String, appId: Int, appKey: String) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt64(1, phoneNumber)
+        out.writeString(2, smsHash)
+        out.writeString(3, smsCode)
+        out.writeByteArray(4, publicKey)
+        out.writeByteArray(5, deviceHash)
+        out.writeString(6, deviceTitle)
+        out.writeInt32(7, appId)
+        out.writeString(8, appKey)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt64Size(1, phoneNumber)) + (com.google.protobuf.CodedOutputStream.computeStringSize(2, smsHash)) + (com.google.protobuf.CodedOutputStream.computeStringSize(3, smsCode)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(4, publicKey)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(5, deviceHash)) + (com.google.protobuf.CodedOutputStream.computeStringSize(6, deviceTitle)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(7, appId)) + (com.google.protobuf.CodedOutputStream.computeStringSize(8, appKey))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestSignIn {
       val header = 3
       val Response = Refs.ResponseAuth
@@ -202,10 +297,10 @@ package im.actor.api {
               doParse(partialMessage.copy(optsmsCode = Some(in.readString())))
             }
             case 34 => {
-              doParse(partialMessage.copy(optpublicKey = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optpublicKey = Some(in.readByteArray())))
             }
             case 42 => {
-              doParse(partialMessage.copy(optdeviceHash = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optdeviceHash = Some(in.readByteArray())))
             }
             case 50 => {
               doParse(partialMessage.copy(optdeviceTitle = Some(in.readString())))
@@ -227,7 +322,30 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSignUp(phoneNumber: Long, smsHash: String, smsCode: String, name: String, publicKey: Array[Byte], deviceHash: Array[Byte], deviceTitle: String, appId: Int, appKey: String, isSilent: Boolean) extends RpcRequest
+    case class RequestSignUp(phoneNumber: Long, smsHash: String, smsCode: String, name: String, publicKey: Array[Byte], deviceHash: Array[Byte], deviceTitle: String, appId: Int, appKey: String, isSilent: Boolean) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt64(1, phoneNumber)
+        out.writeString(2, smsHash)
+        out.writeString(3, smsCode)
+        out.writeString(4, name)
+        out.writeByteArray(6, publicKey)
+        out.writeByteArray(7, deviceHash)
+        out.writeString(8, deviceTitle)
+        out.writeInt32(9, appId)
+        out.writeString(10, appKey)
+        out.writeBool(11, isSilent)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt64Size(1, phoneNumber)) + (com.google.protobuf.CodedOutputStream.computeStringSize(2, smsHash)) + (com.google.protobuf.CodedOutputStream.computeStringSize(3, smsCode)) + (com.google.protobuf.CodedOutputStream.computeStringSize(4, name)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(6, publicKey)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(7, deviceHash)) + (com.google.protobuf.CodedOutputStream.computeStringSize(8, deviceTitle)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(9, appId)) + (com.google.protobuf.CodedOutputStream.computeStringSize(10, appKey)) + (com.google.protobuf.CodedOutputStream.computeBoolSize(11, isSilent))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestSignUp {
       val header = 4
       val Response = Refs.ResponseAuth
@@ -266,10 +384,10 @@ package im.actor.api {
               doParse(partialMessage.copy(optname = Some(in.readString())))
             }
             case 50 => {
-              doParse(partialMessage.copy(optpublicKey = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optpublicKey = Some(in.readByteArray())))
             }
             case 58 => {
-              doParse(partialMessage.copy(optdeviceHash = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optdeviceHash = Some(in.readByteArray())))
             }
             case 66 => {
               doParse(partialMessage.copy(optdeviceTitle = Some(in.readString())))
@@ -294,7 +412,37 @@ package im.actor.api {
         })
       }
     }
-    case class AuthSession(id: Int, authHolder: Int, appId: Int, appTitle: String, deviceTitle: String, authTime: Int, authLocation: String, latitude: Option[Double], longitude: Option[Double])
+    case class AuthSession(id: Int, authHolder: Int, appId: Int, appTitle: String, deviceTitle: String, authTime: Int, authLocation: String, latitude: Option[Double], longitude: Option[Double]) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, id)
+        out.writeInt32(2, authHolder)
+        out.writeInt32(3, appId)
+        out.writeString(4, appTitle)
+        out.writeString(5, deviceTitle)
+        out.writeInt32(6, authTime)
+        out.writeString(7, authLocation)
+        latitude foreach { x =>
+          out.writeDouble(8, x)
+        }
+        longitude foreach { x =>
+          out.writeDouble(9, x)
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, id)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, authHolder)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(3, appId)) + (com.google.protobuf.CodedOutputStream.computeStringSize(4, appTitle)) + (com.google.protobuf.CodedOutputStream.computeStringSize(5, deviceTitle)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(6, authTime)) + (com.google.protobuf.CodedOutputStream.computeStringSize(7, authLocation)) + (latitude map { x =>
+          com.google.protobuf.CodedOutputStream.computeDoubleSize(8, x)
+        } getOrElse(0)) + (longitude map { x =>
+          com.google.protobuf.CodedOutputStream.computeDoubleSize(9, x)
+        } getOrElse(0))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object AuthSession {
       case class Partial(optid: Option[Int], optauthHolder: Option[Int], optappId: Option[Int], optappTitle: Option[String], optdeviceTitle: Option[String], optauthTime: Option[Int], optauthLocation: Option[String], optlatitude: Option[Option[Double]], optlongitude: Option[Option[Double]]) {
         def toComplete: Option[AuthSession] = {
@@ -374,8 +522,42 @@ package im.actor.api {
         doParse
         Right(RequestGetAuthSessions)
       }
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        ()
+      }
+      def getSerializedSize: Int = {
+        0
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
     }
-    case class ResponseGetAuthSessions(userAuths: Vector[Refs.AuthSession]) extends RpcResponse
+    case class ResponseGetAuthSessions(userAuths: Vector[Refs.AuthSession]) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        userAuths foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((userAuths map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseGetAuthSessions {
       val header = 81
       case class Partial(eithersuserAuths: Vector[Either[Refs.AuthSession.Partial, Refs.AuthSession]]) {
@@ -417,7 +599,21 @@ package im.actor.api {
         })
       }
     }
-    case class RequestTerminateSession(id: Int) extends RpcRequest
+    case class RequestTerminateSession(id: Int) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, id)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, id))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestTerminateSession {
       val header = 82
       val Response = Refs.ResponseVoid
@@ -466,6 +662,19 @@ package im.actor.api {
         doParse
         Right(RequestTerminateAllSessions)
       }
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        ()
+      }
+      def getSerializedSize: Int = {
+        0
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
     }
     trait RequestSignOut extends RpcRequest
     case object RequestSignOut extends RequestSignOut {
@@ -486,24 +695,54 @@ package im.actor.api {
         doParse
         Right(RequestSignOut)
       }
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        ()
+      }
+      def getSerializedSize: Int = {
+        0
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
     }
   }
   package users {
-    trait Sex
-    object Sex extends Enumeration with Sex {
+    trait Sex extends Enumeration
+    object Sex extends Sex {
       type Sex = Value
       val Unknown: Sex = Value(1)
       val Male: Sex = Value(2)
       val Female: Sex = Value(3)
     }
-    trait UserState
-    object UserState extends Enumeration with UserState {
+    trait UserState extends Enumeration
+    object UserState extends UserState {
       type UserState = Value
       val Registered: UserState = Value(1)
       val Email: UserState = Value(2)
       val Deleted: UserState = Value(3)
     }
-    case class Phone(id: Int, accessHash: Long, phone: Long, phoneTitle: String)
+    case class Phone(id: Int, accessHash: Long, phone: Long, phoneTitle: String) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, id)
+        out.writeInt64(2, accessHash)
+        out.writeInt64(3, phone)
+        out.writeString(4, phoneTitle)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, id)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, accessHash)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, phone)) + (com.google.protobuf.CodedOutputStream.computeStringSize(4, phoneTitle))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object Phone {
       case class Partial(optid: Option[Int], optaccessHash: Option[Long], optphone: Option[Long], optphoneTitle: Option[String]) {
         def toComplete: Option[Phone] = {
@@ -544,7 +783,24 @@ package im.actor.api {
         })
       }
     }
-    case class Email(id: Int, accessHash: Long, email: String, emailTitle: String)
+    case class Email(id: Int, accessHash: Long, email: String, emailTitle: String) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, id)
+        out.writeInt64(2, accessHash)
+        out.writeString(3, email)
+        out.writeString(4, emailTitle)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, id)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, accessHash)) + (com.google.protobuf.CodedOutputStream.computeStringSize(3, email)) + (com.google.protobuf.CodedOutputStream.computeStringSize(4, emailTitle))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object Email {
       case class Partial(optid: Option[Int], optaccessHash: Option[Long], optemail: Option[String], optemailTitle: Option[String]) {
         def toComplete: Option[Email] = {
@@ -585,7 +841,58 @@ package im.actor.api {
         })
       }
     }
-    case class User(id: Int, accessHash: Long, name: String, localName: Option[String], sex: Option[Refs.Sex], keyHashes: Vector[Long], phone: Long, avatar: Option[Refs.Avatar], phones: Vector[Int], emails: Vector[Int], userState: Refs.UserState)
+    case class User(id: Int, accessHash: Long, name: String, localName: Option[String], sex: Option[Refs.Sex], keyHashes: Vector[Long], phone: Long, avatar: Option[Refs.Avatar], phones: Vector[Int], emails: Vector[Int], userState: Refs.UserState) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, id)
+        out.writeInt64(2, accessHash)
+        out.writeString(3, name)
+        localName foreach { x =>
+          out.writeString(4, x)
+        }
+        sex foreach { x =>
+          out.writeEnum(5, x.id)
+        }
+        keyHashes foreach { x =>
+          out.writeInt64(6, x)
+        }
+        out.writeInt64(7, phone)
+        avatar foreach { x =>
+          out.writeTag(8, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        phones foreach { x =>
+          out.writeInt32(9, x)
+        }
+        emails foreach { x =>
+          out.writeInt32(10, x)
+        }
+        out.writeEnum(11, userState.id)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, id)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, accessHash)) + (com.google.protobuf.CodedOutputStream.computeStringSize(3, name)) + (localName map { x =>
+          com.google.protobuf.CodedOutputStream.computeStringSize(4, x)
+        } getOrElse(0)) + (sex map { x =>
+          com.google.protobuf.CodedOutputStream.computeEnumSize(5, x.id)
+        } getOrElse(0)) + ((keyHashes map { x =>
+          com.google.protobuf.CodedOutputStream.computeInt64Size(6, x)
+        }).foldLeft(0)(_ + _)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(7, phone)) + (avatar map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(8) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        } getOrElse(0)) + ((phones map { x =>
+          com.google.protobuf.CodedOutputStream.computeInt32Size(9, x)
+        }).foldLeft(0)(_ + _)) + ((emails map { x =>
+          com.google.protobuf.CodedOutputStream.computeInt32Size(10, x)
+        }).foldLeft(0)(_ + _)) + (com.google.protobuf.CodedOutputStream.computeEnumSize(11, userState.id))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object User {
       case class Partial(optid: Option[Int], optaccessHash: Option[Long], optname: Option[String], optlocalName: Option[Option[String]], optsex: Option[Option[Refs.Sex]], keyHashes: Vector[Long], optphone: Option[Long], opteitheravatar: Option[Option[Either[Refs.Avatar.Partial, Refs.Avatar]]], phones: Vector[Int], emails: Vector[Int], optuserState: Option[Refs.UserState]) {
         def toComplete: Option[User] = {
@@ -696,7 +1003,23 @@ package im.actor.api {
         })
       }
     }
-    case class RequestEditUserLocalName(uid: Int, accessHash: Long, name: String) extends RpcRequest
+    case class RequestEditUserLocalName(uid: Int, accessHash: Long, name: String) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt64(2, accessHash)
+        out.writeString(3, name)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, accessHash)) + (com.google.protobuf.CodedOutputStream.computeStringSize(3, name))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestEditUserLocalName {
       val header = 96
       val Response = Refs.ResponseSeq
@@ -735,7 +1058,29 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateUserAvatarChanged(uid: Int, avatar: Option[Refs.Avatar]) extends Update
+    case class UpdateUserAvatarChanged(uid: Int, avatar: Option[Refs.Avatar]) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        avatar foreach { x =>
+          out.writeTag(2, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (avatar map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(2) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        } getOrElse(0))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateUserAvatarChanged {
       val header = 16
       case class Partial(optuid: Option[Int], opteitheravatar: Option[Option[Either[Refs.Avatar.Partial, Refs.Avatar]]]) {
@@ -783,7 +1128,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateUserNameChanged(uid: Int, name: String) extends Update
+    case class UpdateUserNameChanged(uid: Int, name: String) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeString(2, name)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeStringSize(2, name))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateUserNameChanged {
       val header = 32
       case class Partial(optuid: Option[Int], optname: Option[String]) {
@@ -817,7 +1177,26 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateUserLocalNameChanged(uid: Int, localName: Option[String]) extends Update
+    case class UpdateUserLocalNameChanged(uid: Int, localName: Option[String]) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        localName foreach { x =>
+          out.writeString(2, x)
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (localName map { x =>
+          com.google.protobuf.CodedOutputStream.computeStringSize(2, x)
+        } getOrElse(0))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateUserLocalNameChanged {
       val header = 51
       case class Partial(optuid: Option[Int], optlocalName: Option[Option[String]]) {
@@ -851,7 +1230,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateUserPhoneAdded(uid: Int, phoneId: Int) extends Update
+    case class UpdateUserPhoneAdded(uid: Int, phoneId: Int) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt32(2, phoneId)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, phoneId))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateUserPhoneAdded {
       val header = 87
       case class Partial(optuid: Option[Int], optphoneId: Option[Int]) {
@@ -885,7 +1279,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateUserPhoneRemoved(uid: Int, phoneId: Int) extends Update
+    case class UpdateUserPhoneRemoved(uid: Int, phoneId: Int) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt32(2, phoneId)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, phoneId))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateUserPhoneRemoved {
       val header = 88
       case class Partial(optuid: Option[Int], optphoneId: Option[Int]) {
@@ -919,7 +1328,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdatePhoneTitleChanged(phoneId: Int, title: String) extends Update
+    case class UpdatePhoneTitleChanged(phoneId: Int, title: String) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(2, phoneId)
+        out.writeString(3, title)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(2, phoneId)) + (com.google.protobuf.CodedOutputStream.computeStringSize(3, title))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdatePhoneTitleChanged {
       val header = 89
       case class Partial(optphoneId: Option[Int], opttitle: Option[String]) {
@@ -953,7 +1377,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdatePhoneMoved(phoneId: Int, uid: Int) extends Update
+    case class UpdatePhoneMoved(phoneId: Int, uid: Int) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, phoneId)
+        out.writeInt32(2, uid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, phoneId)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, uid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdatePhoneMoved {
       val header = 101
       case class Partial(optphoneId: Option[Int], optuid: Option[Int]) {
@@ -987,7 +1426,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateUserEmailAdded(uid: Int, emailId: Int) extends Update
+    case class UpdateUserEmailAdded(uid: Int, emailId: Int) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt32(2, emailId)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, emailId))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateUserEmailAdded {
       val header = 96
       case class Partial(optuid: Option[Int], optemailId: Option[Int]) {
@@ -1021,7 +1475,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateUserEmailRemoved(uid: Int, emailId: Int) extends Update
+    case class UpdateUserEmailRemoved(uid: Int, emailId: Int) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt32(2, emailId)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, emailId))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateUserEmailRemoved {
       val header = 97
       case class Partial(optuid: Option[Int], optemailId: Option[Int]) {
@@ -1055,7 +1524,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateEmailTitleChanged(emailId: Int, title: String) extends Update
+    case class UpdateEmailTitleChanged(emailId: Int, title: String) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, emailId)
+        out.writeString(2, title)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, emailId)) + (com.google.protobuf.CodedOutputStream.computeStringSize(2, title))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateEmailTitleChanged {
       val header = 98
       case class Partial(optemailId: Option[Int], opttitle: Option[String]) {
@@ -1089,7 +1573,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateEmailMoved(emailId: Int, uid: Int) extends Update
+    case class UpdateEmailMoved(emailId: Int, uid: Int) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, emailId)
+        out.writeInt32(2, uid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, emailId)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, uid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateEmailMoved {
       val header = 102
       case class Partial(optemailId: Option[Int], optuid: Option[Int]) {
@@ -1123,7 +1622,31 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateUserContactsChanged(uid: Int, phones: Vector[Int], emails: Vector[Int]) extends Update
+    case class UpdateUserContactsChanged(uid: Int, phones: Vector[Int], emails: Vector[Int]) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        phones foreach { x =>
+          out.writeInt32(2, x)
+        }
+        emails foreach { x =>
+          out.writeInt32(3, x)
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + ((phones map { x =>
+          com.google.protobuf.CodedOutputStream.computeInt32Size(2, x)
+        }).foldLeft(0)(_ + _)) + ((emails map { x =>
+          com.google.protobuf.CodedOutputStream.computeInt32Size(3, x)
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateUserContactsChanged {
       val header = 86
       case class Partial(optuid: Option[Int], phones: Vector[Int], emails: Vector[Int]) {
@@ -1176,7 +1699,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateUserStateChanged(uid: Int, state: Refs.UserState) extends Update
+    case class UpdateUserStateChanged(uid: Int, state: Refs.UserState) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeEnum(2, state.id)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeEnumSize(2, state.id))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateUserStateChanged {
       val header = 100
       case class Partial(optuid: Option[Int], optstate: Option[Refs.UserState]) {
@@ -1214,7 +1752,21 @@ package im.actor.api {
     }
   }
   package profile {
-    case class RequestEditName(name: String) extends RpcRequest
+    case class RequestEditName(name: String) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeString(1, name)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeStringSize(1, name))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestEditName {
       val header = 53
       val Response = Refs.ResponseSeq
@@ -1244,7 +1796,26 @@ package im.actor.api {
         })
       }
     }
-    case class RequestEditAvatar(fileLocation: Refs.FileLocation) extends RpcRequest
+    case class RequestEditAvatar(fileLocation: Refs.FileLocation) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(fileLocation.getSerializedSize)
+        fileLocation.writeTo(out)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = fileLocation.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        })
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestEditAvatar {
       val header = 31
       val Response = Refs.ResponseEditAvatar
@@ -1281,7 +1852,28 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseEditAvatar(avatar: Refs.Avatar, seq: Int, state: Array[Byte]) extends RpcResponse
+    case class ResponseEditAvatar(avatar: Refs.Avatar, seq: Int, state: Array[Byte]) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(avatar.getSerializedSize)
+        avatar.writeTo(out)
+        out.writeInt32(2, seq)
+        out.writeByteArray(3, state)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = avatar.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, seq)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(3, state))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseEditAvatar {
       val header = 103
       case class Partial(eitheravatar: Either[Refs.Avatar.Partial, Refs.Avatar], optseq: Option[Int], optstate: Option[Array[Byte]]) {
@@ -1313,7 +1905,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optseq = Some(in.readInt32())))
             }
             case 26 => {
-              doParse(partialMessage.copy(optstate = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optstate = Some(in.readByteArray())))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -1345,8 +1937,40 @@ package im.actor.api {
         doParse
         Right(RequestRemoveAvatar)
       }
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        ()
+      }
+      def getSerializedSize: Int = {
+        0
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
     }
-    case class RequestSendEmailCode(email: String, description: Option[String]) extends RpcRequest
+    case class RequestSendEmailCode(email: String, description: Option[String]) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeString(1, email)
+        description foreach { x =>
+          out.writeString(2, x)
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeStringSize(1, email)) + (description map { x =>
+          com.google.protobuf.CodedOutputStream.computeStringSize(2, x)
+        } getOrElse(0))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestSendEmailCode {
       val header = 120
       val Response = Refs.ResponseVoid
@@ -1381,7 +2005,22 @@ package im.actor.api {
         })
       }
     }
-    case class RequestDetachEmail(email: Int, accessHash: Long) extends RpcRequest
+    case class RequestDetachEmail(email: Int, accessHash: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, email)
+        out.writeInt64(2, accessHash)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, email)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, accessHash))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestDetachEmail {
       val header = 123
       val Response = Refs.ResponseSeq
@@ -1416,7 +2055,22 @@ package im.actor.api {
         })
       }
     }
-    case class RequestChangePhoneTitle(phoneId: Int, title: String) extends RpcRequest
+    case class RequestChangePhoneTitle(phoneId: Int, title: String) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, phoneId)
+        out.writeString(2, title)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, phoneId)) + (com.google.protobuf.CodedOutputStream.computeStringSize(2, title))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestChangePhoneTitle {
       val header = 124
       val Response = Refs.ResponseSeq
@@ -1451,7 +2105,22 @@ package im.actor.api {
         })
       }
     }
-    case class RequestChangeEmailTitle(emailId: Int, title: String) extends RpcRequest
+    case class RequestChangeEmailTitle(emailId: Int, title: String) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, emailId)
+        out.writeString(2, title)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, emailId)) + (com.google.protobuf.CodedOutputStream.computeStringSize(2, title))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestChangeEmailTitle {
       val header = 125
       val Response = Refs.ResponseSeq
@@ -1488,7 +2157,26 @@ package im.actor.api {
     }
   }
   package contacts {
-    case class PhoneToImport(phoneNumber: Long, name: Option[String])
+    case class PhoneToImport(phoneNumber: Long, name: Option[String]) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt64(1, phoneNumber)
+        name foreach { x =>
+          out.writeString(2, x)
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt64Size(1, phoneNumber)) + (name map { x =>
+          com.google.protobuf.CodedOutputStream.computeStringSize(2, x)
+        } getOrElse(0))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object PhoneToImport {
       case class Partial(optphoneNumber: Option[Long], optname: Option[Option[String]]) {
         def toComplete: Option[PhoneToImport] = {
@@ -1521,7 +2209,26 @@ package im.actor.api {
         })
       }
     }
-    case class EmailToImport(email: String, name: Option[String])
+    case class EmailToImport(email: String, name: Option[String]) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeString(1, email)
+        name foreach { x =>
+          out.writeString(2, x)
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeStringSize(1, email)) + (name map { x =>
+          com.google.protobuf.CodedOutputStream.computeStringSize(2, x)
+        } getOrElse(0))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object EmailToImport {
       case class Partial(optemail: Option[String], optname: Option[Option[String]]) {
         def toComplete: Option[EmailToImport] = {
@@ -1554,7 +2261,36 @@ package im.actor.api {
         })
       }
     }
-    case class RequestImportContacts(phones: Vector[Refs.PhoneToImport], emails: Vector[Refs.EmailToImport]) extends RpcRequest
+    case class RequestImportContacts(phones: Vector[Refs.PhoneToImport], emails: Vector[Refs.EmailToImport]) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        phones foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        emails foreach { x =>
+          out.writeTag(2, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((phones map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + ((emails map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(2) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestImportContacts {
       val header = 7
       val Response = Refs.ResponseImportContacts
@@ -1615,7 +2351,30 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseImportContacts(users: Vector[Refs.User], seq: Int, state: Array[Byte]) extends RpcResponse
+    case class ResponseImportContacts(users: Vector[Refs.User], seq: Int, state: Array[Byte]) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        users foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        out.writeInt32(2, seq)
+        out.writeByteArray(3, state)
+      }
+      def getSerializedSize: Int = {
+        ((users map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, seq)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(3, state))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseImportContacts {
       val header = 8
       case class Partial(eithersusers: Vector[Either[Refs.User.Partial, Refs.User]], optseq: Option[Int], optstate: Option[Array[Byte]]) {
@@ -1653,7 +2412,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optseq = Some(in.readInt32())))
             }
             case 26 => {
-              doParse(partialMessage.copy(optstate = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optstate = Some(in.readByteArray())))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -1666,7 +2425,21 @@ package im.actor.api {
         })
       }
     }
-    case class RequestGetContacts(contactsHash: String) extends RpcRequest
+    case class RequestGetContacts(contactsHash: String) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeString(1, contactsHash)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeStringSize(1, contactsHash))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestGetContacts {
       val header = 87
       val Response = Refs.ResponseGetContacts
@@ -1696,7 +2469,29 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseGetContacts(users: Vector[Refs.User], isNotChanged: Boolean) extends RpcResponse
+    case class ResponseGetContacts(users: Vector[Refs.User], isNotChanged: Boolean) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        users foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        out.writeBool(2, isNotChanged)
+      }
+      def getSerializedSize: Int = {
+        ((users map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + (com.google.protobuf.CodedOutputStream.computeBoolSize(2, isNotChanged))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseGetContacts {
       val header = 88
       case class Partial(eithersusers: Vector[Either[Refs.User.Partial, Refs.User]], optisNotChanged: Option[Boolean]) {
@@ -1743,7 +2538,22 @@ package im.actor.api {
         })
       }
     }
-    case class RequestRemoveContact(uid: Int, accessHash: Long) extends RpcRequest
+    case class RequestRemoveContact(uid: Int, accessHash: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt64(2, accessHash)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, accessHash))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestRemoveContact {
       val header = 89
       val Response = Refs.ResponseSeq
@@ -1778,7 +2588,22 @@ package im.actor.api {
         })
       }
     }
-    case class RequestAddContact(uid: Int, accessHash: Long) extends RpcRequest
+    case class RequestAddContact(uid: Int, accessHash: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt64(2, accessHash)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, accessHash))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestAddContact {
       val header = 114
       val Response = Refs.ResponseSeq
@@ -1813,7 +2638,21 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSearchContacts(request: String) extends RpcRequest
+    case class RequestSearchContacts(request: String) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeString(1, request)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeStringSize(1, request))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestSearchContacts {
       val header = 112
       val Response = Refs.ResponseSearchContacts
@@ -1843,7 +2682,28 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseSearchContacts(users: Vector[Refs.User]) extends RpcResponse
+    case class ResponseSearchContacts(users: Vector[Refs.User]) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        users foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((users map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseSearchContacts {
       val header = 113
       case class Partial(eithersusers: Vector[Either[Refs.User.Partial, Refs.User]]) {
@@ -1885,7 +2745,23 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateContactRegistered(uid: Int, isSilent: Boolean, date: Long) extends Update
+    case class UpdateContactRegistered(uid: Int, isSilent: Boolean, date: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeBool(2, isSilent)
+        out.writeInt64(3, date)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeBoolSize(2, isSilent)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, date))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateContactRegistered {
       val header = 5
       case class Partial(optuid: Option[Int], optisSilent: Option[Boolean], optdate: Option[Long]) {
@@ -1923,7 +2799,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateEmailContactRegistered(emailId: Int, uid: Int) extends Update
+    case class UpdateEmailContactRegistered(emailId: Int, uid: Int) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, emailId)
+        out.writeInt32(2, uid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, emailId)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, uid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateEmailContactRegistered {
       val header = 120
       case class Partial(optemailId: Option[Int], optuid: Option[Int]) {
@@ -1957,7 +2848,25 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateContactsAdded(uids: Vector[Int]) extends Update
+    case class UpdateContactsAdded(uids: Vector[Int]) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        uids foreach { x =>
+          out.writeInt32(1, x)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((uids map { x =>
+          com.google.protobuf.CodedOutputStream.computeInt32Size(1, x)
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateContactsAdded {
       val header = 40
       case class Partial(uids: Vector[Int]) {
@@ -1994,7 +2903,25 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateContactsRemoved(uids: Vector[Int]) extends Update
+    case class UpdateContactsRemoved(uids: Vector[Int]) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        uids foreach { x =>
+          out.writeInt32(1, x)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((uids map { x =>
+          com.google.protobuf.CodedOutputStream.computeInt32Size(1, x)
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateContactsRemoved {
       val header = 41
       case class Partial(uids: Vector[Int]) {
@@ -2033,7 +2960,30 @@ package im.actor.api {
     }
   }
   package messaging {
-    case class MessageContent(`type`: Int, content: Refs.Message)
+    case class MessageContent(`type`: Int, content: Refs.Message) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, `type`)
+        val baosMessage = new java.io.ByteArrayOutputStream
+        val outMessage = com.google.protobuf.CodedOutputStream.newInstance(baosMessage)
+        content.writeTo(outMessage)
+        outMessage.flush()
+        out.writeByteArray(2, baosMessage.toByteArray)
+        baosMessage.close()
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, `type`)) + ({
+          val size = content.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(2) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        })
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object MessageContent {
       case class Partial(opttype: Option[Int], eithercontent: Either[Any, Refs.Message]) {
         def toComplete: Option[MessageContent] = {
@@ -2055,7 +3005,7 @@ package im.actor.api {
             case 18 => {
               doParse(partialMessage.copy(eithercontent = partialMessage.opttype match {
                 case Some(extType) => {
-                  val bytes = in.readBytes().toByteArray
+                  val bytes = in.readByteArray()
                   val stream = com.google.protobuf.CodedInputStream.newInstance(bytes)
                   Refs.Message.parseFrom(stream, extType)
                 }
@@ -2073,7 +3023,27 @@ package im.actor.api {
         })
       }
     }
-    case class TextMessage(text: String, extType: Int, ext: Option[Array[Byte]]) extends Message
+    case class TextMessage(text: String, extType: Int, ext: Option[Array[Byte]]) extends Message {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeString(1, text)
+        out.writeInt32(2, extType)
+        ext foreach { x =>
+          out.writeByteArray(3, x)
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeStringSize(1, text)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, extType)) + (ext map { x =>
+          com.google.protobuf.CodedOutputStream.computeByteArraySize(3, x)
+        } getOrElse(0))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object TextMessage {
       case class Partial(opttext: Option[String], optextType: Option[Int], optext: Option[Option[Array[Byte]]]) {
         def toComplete: Option[TextMessage] = {
@@ -2097,7 +3067,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optextType = Some(in.readInt32())))
             }
             case 26 => {
-              doParse(partialMessage.copy(optext = Some(Some(in.readBytes().toByteArray()))))
+              doParse(partialMessage.copy(optext = Some(Some(in.readByteArray()))))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -2110,7 +3080,33 @@ package im.actor.api {
         })
       }
     }
-    case class ServiceMessage(text: String, extType: Int, ext: Option[Refs.ServiceExtension]) extends Message
+    case class ServiceMessage(text: String, extType: Int, ext: Option[Refs.ServiceExtension]) extends Message {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeString(1, text)
+        out.writeInt32(2, extType)
+        ext foreach { x =>
+          val baosServiceExtension = new java.io.ByteArrayOutputStream
+          val outServiceExtension = com.google.protobuf.CodedOutputStream.newInstance(baosServiceExtension)
+          x.writeTo(outServiceExtension)
+          outServiceExtension.flush()
+          out.writeByteArray(3, baosServiceExtension.toByteArray)
+          baosServiceExtension.close()
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeStringSize(1, text)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, extType)) + (ext map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(3) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        } getOrElse(0))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ServiceMessage {
       case class Partial(opttext: Option[String], optextType: Option[Int], opteitherext: Option[Option[Either[Any, Refs.ServiceExtension]]]) {
         def toComplete: Option[ServiceMessage] = {
@@ -2143,7 +3139,7 @@ package im.actor.api {
             case 26 => {
               doParse(partialMessage.copy(opteitherext = Some(Some(partialMessage.optextType match {
                 case Some(extType) => {
-                  val bytes = in.readBytes().toByteArray
+                  val bytes = in.readByteArray()
                   val stream = com.google.protobuf.CodedInputStream.newInstance(bytes)
                   Refs.ServiceExtension.parseFrom(stream, extType)
                 }
@@ -2161,7 +3157,21 @@ package im.actor.api {
         })
       }
     }
-    case class ServiceExUserAdded(addedUid: Int) extends ServiceExtension
+    case class ServiceExUserAdded(addedUid: Int) extends ServiceExtension {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, addedUid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, addedUid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ServiceExUserAdded {
       case class Partial(optaddedUid: Option[Int]) {
         def toComplete: Option[ServiceExUserAdded] = {
@@ -2189,7 +3199,21 @@ package im.actor.api {
         })
       }
     }
-    case class ServiceExUserKicked(kickedUid: Int) extends ServiceExtension
+    case class ServiceExUserKicked(kickedUid: Int) extends ServiceExtension {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, kickedUid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, kickedUid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ServiceExUserKicked {
       case class Partial(optkickedUid: Option[Int]) {
         def toComplete: Option[ServiceExUserKicked] = {
@@ -2234,6 +3258,19 @@ package im.actor.api {
         doParse
         Right(ServiceExUserLeft)
       }
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        ()
+      }
+      def getSerializedSize: Int = {
+        0
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
     }
     trait ServiceExGroupCreated extends ServiceExtension
     case object ServiceExGroupCreated extends ServiceExGroupCreated {
@@ -2252,8 +3289,35 @@ package im.actor.api {
         doParse
         Right(ServiceExGroupCreated)
       }
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        ()
+      }
+      def getSerializedSize: Int = {
+        0
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
     }
-    case class ServiceExChangedTitle(title: String) extends ServiceExtension
+    case class ServiceExChangedTitle(title: String) extends ServiceExtension {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeString(1, title)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeStringSize(1, title))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ServiceExChangedTitle {
       case class Partial(opttitle: Option[String]) {
         def toComplete: Option[ServiceExChangedTitle] = {
@@ -2281,7 +3345,28 @@ package im.actor.api {
         })
       }
     }
-    case class ServiceExChangedAvatar(avatar: Option[Refs.Avatar]) extends ServiceExtension
+    case class ServiceExChangedAvatar(avatar: Option[Refs.Avatar]) extends ServiceExtension {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        avatar foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        (avatar map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        } getOrElse(0))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ServiceExChangedAvatar {
       case class Partial(opteitheravatar: Option[Option[Either[Refs.Avatar.Partial, Refs.Avatar]]]) {
         def toComplete: Option[ServiceExChangedAvatar] = {
@@ -2323,7 +3408,21 @@ package im.actor.api {
         })
       }
     }
-    case class ServiceExEmailContactRegistered(uid: Int) extends ServiceExtension
+    case class ServiceExEmailContactRegistered(uid: Int) extends ServiceExtension {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ServiceExEmailContactRegistered {
       case class Partial(optuid: Option[Int]) {
         def toComplete: Option[ServiceExEmailContactRegistered] = {
@@ -2351,7 +3450,39 @@ package im.actor.api {
         })
       }
     }
-    case class FileMessage(fileId: Long, accessHash: Long, fileSize: Int, name: String, mimeType: String, thumb: Option[Refs.FastThumb], extType: Int, ext: Option[Array[Byte]]) extends Message
+    case class FileMessage(fileId: Long, accessHash: Long, fileSize: Int, name: String, mimeType: String, thumb: Option[Refs.FastThumb], extType: Int, ext: Option[Array[Byte]]) extends Message {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt64(1, fileId)
+        out.writeInt64(2, accessHash)
+        out.writeInt32(3, fileSize)
+        out.writeString(4, name)
+        out.writeString(5, mimeType)
+        thumb foreach { x =>
+          out.writeTag(6, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        out.writeInt32(7, extType)
+        ext foreach { x =>
+          out.writeByteArray(8, x)
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt64Size(1, fileId)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, accessHash)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(3, fileSize)) + (com.google.protobuf.CodedOutputStream.computeStringSize(4, name)) + (com.google.protobuf.CodedOutputStream.computeStringSize(5, mimeType)) + (thumb map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(6) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        } getOrElse(0)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(7, extType)) + (ext map { x =>
+          com.google.protobuf.CodedOutputStream.computeByteArraySize(8, x)
+        } getOrElse(0))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object FileMessage {
       case class Partial(optfileId: Option[Long], optaccessHash: Option[Long], optfileSize: Option[Int], optname: Option[String], optmimeType: Option[String], opteitherthumb: Option[Option[Either[Refs.FastThumb.Partial, Refs.FastThumb]]], optextType: Option[Int], optext: Option[Option[Array[Byte]]]) {
         def toComplete: Option[FileMessage] = {
@@ -2409,7 +3540,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optextType = Some(in.readInt32())))
             }
             case 66 => {
-              doParse(partialMessage.copy(optext = Some(Some(in.readBytes().toByteArray()))))
+              doParse(partialMessage.copy(optext = Some(Some(in.readByteArray()))))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -2422,7 +3553,22 @@ package im.actor.api {
         })
       }
     }
-    case class FileExPhoto(w: Int, h: Int) extends FileExtension
+    case class FileExPhoto(w: Int, h: Int) extends FileExtension {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, w)
+        out.writeInt32(2, h)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, w)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, h))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object FileExPhoto {
       case class Partial(optw: Option[Int], opth: Option[Int]) {
         def toComplete: Option[FileExPhoto] = {
@@ -2455,7 +3601,23 @@ package im.actor.api {
         })
       }
     }
-    case class FileExVideo(w: Int, h: Int, duration: Int) extends FileExtension
+    case class FileExVideo(w: Int, h: Int, duration: Int) extends FileExtension {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, w)
+        out.writeInt32(2, h)
+        out.writeInt32(3, duration)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, w)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, h)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(3, duration))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object FileExVideo {
       case class Partial(optw: Option[Int], opth: Option[Int], optduration: Option[Int]) {
         def toComplete: Option[FileExVideo] = {
@@ -2492,7 +3654,21 @@ package im.actor.api {
         })
       }
     }
-    case class FileExVoice(duration: Int) extends FileExtension
+    case class FileExVoice(duration: Int) extends FileExtension {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, duration)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, duration))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object FileExVoice {
       case class Partial(optduration: Option[Int]) {
         def toComplete: Option[FileExVoice] = {
@@ -2520,7 +3696,44 @@ package im.actor.api {
         })
       }
     }
-    case class WrongKeysErrorData(newKeys: Vector[Refs.UserKey], removedKeys: Vector[Refs.UserKey], invalidKeys: Vector[Refs.UserKey])
+    case class WrongKeysErrorData(newKeys: Vector[Refs.UserKey], removedKeys: Vector[Refs.UserKey], invalidKeys: Vector[Refs.UserKey]) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        newKeys foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        removedKeys foreach { x =>
+          out.writeTag(2, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        invalidKeys foreach { x =>
+          out.writeTag(3, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((newKeys map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + ((removedKeys map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(2) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + ((invalidKeys map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(3) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object WrongKeysErrorData {
       case class Partial(eithersnewKeys: Vector[Either[Refs.UserKey.Partial, Refs.UserKey]], eithersremovedKeys: Vector[Either[Refs.UserKey.Partial, Refs.UserKey]], eithersinvalidKeys: Vector[Either[Refs.UserKey.Partial, Refs.UserKey]]) {
         def toComplete: Option[WrongKeysErrorData] = {
@@ -2596,7 +3809,22 @@ package im.actor.api {
         })
       }
     }
-    case class EncryptedAesKey(keyHash: Long, aesEncryptedKey: Array[Byte])
+    case class EncryptedAesKey(keyHash: Long, aesEncryptedKey: Array[Byte]) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt64(1, keyHash)
+        out.writeByteArray(2, aesEncryptedKey)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt64Size(1, keyHash)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(2, aesEncryptedKey))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object EncryptedAesKey {
       case class Partial(optkeyHash: Option[Long], optaesEncryptedKey: Option[Array[Byte]]) {
         def toComplete: Option[EncryptedAesKey] = {
@@ -2616,7 +3844,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optkeyHash = Some(in.readInt64())))
             }
             case 18 => {
-              doParse(partialMessage.copy(optaesEncryptedKey = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optaesEncryptedKey = Some(in.readByteArray())))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -2629,7 +3857,44 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSendEncryptedMessage(peer: Refs.OutPeer, rid: Long, encryptedMessage: Array[Byte], keys: Vector[Refs.EncryptedAesKey], ownKeys: Vector[Refs.EncryptedAesKey]) extends RpcRequest
+    case class RequestSendEncryptedMessage(peer: Refs.OutPeer, rid: Long, encryptedMessage: Array[Byte], keys: Vector[Refs.EncryptedAesKey], ownKeys: Vector[Refs.EncryptedAesKey]) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(3, rid)
+        out.writeByteArray(4, encryptedMessage)
+        keys foreach { x =>
+          out.writeTag(5, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        ownKeys foreach { x =>
+          out.writeTag(6, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, rid)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(4, encryptedMessage)) + ((keys map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(5) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + ((ownKeys map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(6) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestSendEncryptedMessage {
       val header = 14
       val Response = Refs.ResponseSeqDate
@@ -2686,7 +3951,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optrid = Some(in.readInt64())))
             }
             case 34 => {
-              doParse(partialMessage.copy(optencryptedMessage = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optencryptedMessage = Some(in.readByteArray())))
             }
             case 42 => {
               doParse(partialMessage.copy(eitherskeys = partialMessage.eitherskeys :+ {
@@ -2709,7 +3974,33 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSendMessage(peer: Refs.OutPeer, rid: Long, message: Refs.MessageContent) extends RpcRequest
+    case class RequestSendMessage(peer: Refs.OutPeer, rid: Long, message: Refs.MessageContent) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(3, rid)
+        out.writeTag(4, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(message.getSerializedSize)
+        message.writeTo(out)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, rid)) + ({
+          val size = message.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(4) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        })
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestSendMessage {
       val header = 92
       val Response = Refs.ResponseSeqDate
@@ -2762,7 +4053,27 @@ package im.actor.api {
         })
       }
     }
-    case class RequestEncryptedReceived(peer: Refs.OutPeer, rid: Long) extends RpcRequest
+    case class RequestEncryptedReceived(peer: Refs.OutPeer, rid: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(3, rid)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestEncryptedReceived {
       val header = 116
       val Response = Refs.ResponseVoid
@@ -2804,7 +4115,27 @@ package im.actor.api {
         })
       }
     }
-    case class RequestEncryptedRead(peer: Refs.OutPeer, rid: Long) extends RpcRequest
+    case class RequestEncryptedRead(peer: Refs.OutPeer, rid: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(3, rid)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestEncryptedRead {
       val header = 117
       val Response = Refs.ResponseVoid
@@ -2846,7 +4177,27 @@ package im.actor.api {
         })
       }
     }
-    case class RequestMessageReceived(peer: Refs.OutPeer, date: Long) extends RpcRequest
+    case class RequestMessageReceived(peer: Refs.OutPeer, date: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(3, date)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, date))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestMessageReceived {
       val header = 55
       val Response = Refs.ResponseVoid
@@ -2888,7 +4239,27 @@ package im.actor.api {
         })
       }
     }
-    case class RequestMessageRead(peer: Refs.OutPeer, date: Long) extends RpcRequest
+    case class RequestMessageRead(peer: Refs.OutPeer, date: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(3, date)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, date))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestMessageRead {
       val header = 57
       val Response = Refs.ResponseVoid
@@ -2930,7 +4301,31 @@ package im.actor.api {
         })
       }
     }
-    case class RequestDeleteMessage(peer: Refs.OutPeer, rids: Vector[Long]) extends RpcRequest
+    case class RequestDeleteMessage(peer: Refs.OutPeer, rids: Vector[Long]) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        rids foreach { x =>
+          out.writeInt64(3, x)
+        }
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + ((rids map { x =>
+          com.google.protobuf.CodedOutputStream.computeInt64Size(3, x)
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestDeleteMessage {
       val header = 98
       val Response = Refs.ResponseVoid
@@ -2979,7 +4374,26 @@ package im.actor.api {
         })
       }
     }
-    case class RequestClearChat(peer: Refs.OutPeer) extends RpcRequest
+    case class RequestClearChat(peer: Refs.OutPeer) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        })
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestClearChat {
       val header = 99
       val Response = Refs.ResponseSeq
@@ -3016,7 +4430,26 @@ package im.actor.api {
         })
       }
     }
-    case class RequestDeleteChat(peer: Refs.OutPeer) extends RpcRequest
+    case class RequestDeleteChat(peer: Refs.OutPeer) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        })
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestDeleteChat {
       val header = 100
       val Response = Refs.ResponseSeq
@@ -3053,7 +4486,31 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateEncryptedMessage(peer: Refs.Peer, senderUid: Int, keyHash: Long, aesEncryptedKey: Array[Byte], message: Array[Byte], date: Long) extends Update
+    case class UpdateEncryptedMessage(peer: Refs.Peer, senderUid: Int, keyHash: Long, aesEncryptedKey: Array[Byte], message: Array[Byte], date: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt32(2, senderUid)
+        out.writeInt64(3, keyHash)
+        out.writeByteArray(4, aesEncryptedKey)
+        out.writeByteArray(5, message)
+        out.writeInt64(6, date)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, senderUid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, keyHash)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(4, aesEncryptedKey)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(5, message)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(6, date))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateEncryptedMessage {
       val header = 1
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer], optsenderUid: Option[Int], optkeyHash: Option[Long], optaesEncryptedKey: Option[Array[Byte]], optmessage: Option[Array[Byte]], optdate: Option[Long]) {
@@ -3094,10 +4551,10 @@ package im.actor.api {
               doParse(partialMessage.copy(optkeyHash = Some(in.readInt64())))
             }
             case 34 => {
-              doParse(partialMessage.copy(optaesEncryptedKey = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optaesEncryptedKey = Some(in.readByteArray())))
             }
             case 42 => {
-              doParse(partialMessage.copy(optmessage = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optmessage = Some(in.readByteArray())))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -3110,7 +4567,35 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateMessage(peer: Refs.Peer, senderUid: Int, date: Long, rid: Long, message: Refs.MessageContent) extends Update
+    case class UpdateMessage(peer: Refs.Peer, senderUid: Int, date: Long, rid: Long, message: Refs.MessageContent) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt32(2, senderUid)
+        out.writeInt64(3, date)
+        out.writeInt64(4, rid)
+        out.writeTag(5, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(message.getSerializedSize)
+        message.writeTo(out)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, senderUid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, date)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, rid)) + ({
+          val size = message.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(5) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        })
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateMessage {
       val header = 55
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer], optsenderUid: Option[Int], optdate: Option[Long], optrid: Option[Long], eithermessage: Either[Refs.MessageContent.Partial, Refs.MessageContent]) {
@@ -3170,7 +4655,28 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateMessageSent(peer: Refs.Peer, rid: Long, date: Long) extends Update
+    case class UpdateMessageSent(peer: Refs.Peer, rid: Long, date: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(2, rid)
+        out.writeInt64(3, date)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, rid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, date))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateMessageSent {
       val header = 4
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer], optrid: Option[Long], optdate: Option[Long]) {
@@ -3215,7 +4721,28 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateEncryptedReceived(peer: Refs.Peer, rid: Long, receivedDate: Long) extends Update
+    case class UpdateEncryptedReceived(peer: Refs.Peer, rid: Long, receivedDate: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(2, rid)
+        out.writeInt64(3, receivedDate)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, rid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, receivedDate))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateEncryptedReceived {
       val header = 18
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer], optrid: Option[Long], optreceivedDate: Option[Long]) {
@@ -3260,7 +4787,28 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateEncryptedRead(peer: Refs.Peer, rid: Long, readDate: Long) extends Update
+    case class UpdateEncryptedRead(peer: Refs.Peer, rid: Long, readDate: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(2, rid)
+        out.writeInt64(3, readDate)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, rid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, readDate))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateEncryptedRead {
       val header = 52
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer], optrid: Option[Long], optreadDate: Option[Long]) {
@@ -3305,7 +4853,27 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateEncryptedReadByMe(peer: Refs.Peer, rid: Long) extends Update
+    case class UpdateEncryptedReadByMe(peer: Refs.Peer, rid: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(2, rid)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateEncryptedReadByMe {
       val header = 53
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer], optrid: Option[Long]) {
@@ -3346,7 +4914,28 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateMessageReceived(peer: Refs.Peer, startDate: Long, receivedDate: Long) extends Update
+    case class UpdateMessageReceived(peer: Refs.Peer, startDate: Long, receivedDate: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(2, startDate)
+        out.writeInt64(3, receivedDate)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, startDate)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, receivedDate))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateMessageReceived {
       val header = 54
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer], optstartDate: Option[Long], optreceivedDate: Option[Long]) {
@@ -3391,7 +4980,28 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateMessageRead(peer: Refs.Peer, startDate: Long, readDate: Long) extends Update
+    case class UpdateMessageRead(peer: Refs.Peer, startDate: Long, readDate: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(2, startDate)
+        out.writeInt64(3, readDate)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, startDate)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, readDate))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateMessageRead {
       val header = 19
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer], optstartDate: Option[Long], optreadDate: Option[Long]) {
@@ -3436,7 +5046,27 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateMessageReadByMe(peer: Refs.Peer, startDate: Long) extends Update
+    case class UpdateMessageReadByMe(peer: Refs.Peer, startDate: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(2, startDate)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, startDate))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateMessageReadByMe {
       val header = 50
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer], optstartDate: Option[Long]) {
@@ -3477,7 +5107,31 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateMessageDelete(peer: Refs.Peer, rids: Vector[Long]) extends Update
+    case class UpdateMessageDelete(peer: Refs.Peer, rids: Vector[Long]) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        rids foreach { x =>
+          out.writeInt64(2, x)
+        }
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + ((rids map { x =>
+          com.google.protobuf.CodedOutputStream.computeInt64Size(2, x)
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateMessageDelete {
       val header = 46
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer], rids: Vector[Long]) {
@@ -3525,7 +5179,26 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateChatClear(peer: Refs.Peer) extends Update
+    case class UpdateChatClear(peer: Refs.Peer) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        })
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateChatClear {
       val header = 47
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer]) {
@@ -3561,7 +5234,26 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateChatDelete(peer: Refs.Peer) extends Update
+    case class UpdateChatDelete(peer: Refs.Peer) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        })
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateChatDelete {
       val header = 48
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer]) {
@@ -3597,7 +5289,11 @@ package im.actor.api {
         })
       }
     }
-    trait Message
+    trait Message {
+      def writeTo(out: com.google.protobuf.CodedOutputStream): Unit
+      def getSerializedSize: Int
+      def toByteArray: Array[Byte]
+    }
     object Message {
       def parseFrom(in: com.google.protobuf.CodedInputStream, ext: Int): Either[Any, Message] = {
         ext match {
@@ -3607,7 +5303,11 @@ package im.actor.api {
         }
       }
     }
-    trait ServiceExtension
+    trait ServiceExtension {
+      def writeTo(out: com.google.protobuf.CodedOutputStream): Unit
+      def getSerializedSize: Int
+      def toByteArray: Array[Byte]
+    }
     object ServiceExtension {
       def parseFrom(in: com.google.protobuf.CodedInputStream, ext: Int): Either[Any, ServiceExtension] = {
         ext match {
@@ -3621,7 +5321,11 @@ package im.actor.api {
         }
       }
     }
-    trait FileExtension
+    trait FileExtension {
+      def writeTo(out: com.google.protobuf.CodedOutputStream): Unit
+      def getSerializedSize: Int
+      def toByteArray: Array[Byte]
+    }
     object FileExtension {
       def parseFrom(in: com.google.protobuf.CodedInputStream, ext: Int): Either[Any, FileExtension] = {
         ext match {
@@ -3633,7 +5337,42 @@ package im.actor.api {
     }
   }
   package groups {
-    case class Group(id: Int, accessHash: Long, title: String, avatar: Option[Refs.Avatar], isMember: Boolean, adminUid: Int, members: Vector[Refs.Member], createDate: Long)
+    case class Group(id: Int, accessHash: Long, title: String, avatar: Option[Refs.Avatar], isMember: Boolean, adminUid: Int, members: Vector[Refs.Member], createDate: Long) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, id)
+        out.writeInt64(2, accessHash)
+        out.writeString(3, title)
+        avatar foreach { x =>
+          out.writeTag(4, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        out.writeBool(6, isMember)
+        out.writeInt32(8, adminUid)
+        members foreach { x =>
+          out.writeTag(9, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        out.writeInt64(10, createDate)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, id)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, accessHash)) + (com.google.protobuf.CodedOutputStream.computeStringSize(3, title)) + (avatar map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(4) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        } getOrElse(0)) + (com.google.protobuf.CodedOutputStream.computeBoolSize(6, isMember)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(8, adminUid)) + ((members map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(9) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(10, createDate))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object Group {
       case class Partial(optid: Option[Int], optaccessHash: Option[Long], opttitle: Option[String], opteitheravatar: Option[Option[Either[Refs.Avatar.Partial, Refs.Avatar]]], optisMember: Option[Boolean], optadminUid: Option[Int], eithersmembers: Vector[Either[Refs.Member.Partial, Refs.Member]], optcreateDate: Option[Long]) {
         def toComplete: Option[Group] = {
@@ -3717,7 +5456,23 @@ package im.actor.api {
         })
       }
     }
-    case class Member(uid: Int, inviterUid: Int, date: Long)
+    case class Member(uid: Int, inviterUid: Int, date: Long) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt32(2, inviterUid)
+        out.writeInt64(3, date)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, inviterUid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, date))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object Member {
       case class Partial(optuid: Option[Int], optinviterUid: Option[Int], optdate: Option[Long]) {
         def toComplete: Option[Member] = {
@@ -3754,7 +5509,30 @@ package im.actor.api {
         })
       }
     }
-    case class RequestCreateGroup(rid: Long, title: String, users: Vector[Refs.UserOutPeer]) extends RpcRequest
+    case class RequestCreateGroup(rid: Long, title: String, users: Vector[Refs.UserOutPeer]) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt64(1, rid)
+        out.writeString(2, title)
+        users foreach { x =>
+          out.writeTag(3, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt64Size(1, rid)) + (com.google.protobuf.CodedOutputStream.computeStringSize(2, title)) + ((users map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(3) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestCreateGroup {
       val header = 65
       val Response = Refs.ResponseCreateGroup
@@ -3806,7 +5584,34 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseCreateGroup(groupPeer: Refs.GroupOutPeer, seq: Int, state: Array[Byte], users: Vector[Int], date: Long) extends RpcResponse
+    case class ResponseCreateGroup(groupPeer: Refs.GroupOutPeer, seq: Int, state: Array[Byte], users: Vector[Int], date: Long) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(groupPeer.getSerializedSize)
+        groupPeer.writeTo(out)
+        out.writeInt32(3, seq)
+        out.writeByteArray(4, state)
+        users foreach { x =>
+          out.writeInt32(5, x)
+        }
+        out.writeInt64(6, date)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = groupPeer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt32Size(3, seq)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(4, state)) + ((users map { x =>
+          com.google.protobuf.CodedOutputStream.computeInt32Size(5, x)
+        }).foldLeft(0)(_ + _)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(6, date))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseCreateGroup {
       val header = 66
       case class Partial(eithergroupPeer: Either[Refs.GroupOutPeer.Partial, Refs.GroupOutPeer], optseq: Option[Int], optstate: Option[Array[Byte]], users: Vector[Int], optdate: Option[Long]) {
@@ -3839,7 +5644,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optseq = Some(in.readInt32())))
             }
             case 34 => {
-              doParse(partialMessage.copy(optstate = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optstate = Some(in.readByteArray())))
             }
             case 40 => {
               doParse(partialMessage.copy(users = partialMessage.users :+ in.readInt32()))
@@ -3867,7 +5672,28 @@ package im.actor.api {
         })
       }
     }
-    case class RequestEditGroupTitle(groupPeer: Refs.GroupOutPeer, title: String, rid: Long) extends RpcRequest
+    case class RequestEditGroupTitle(groupPeer: Refs.GroupOutPeer, title: String, rid: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(groupPeer.getSerializedSize)
+        groupPeer.writeTo(out)
+        out.writeString(3, title)
+        out.writeInt64(4, rid)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = groupPeer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeStringSize(3, title)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestEditGroupTitle {
       val header = 85
       val Response = Refs.ResponseSeqDate
@@ -3913,7 +5739,33 @@ package im.actor.api {
         })
       }
     }
-    case class RequestEditGroupAvatar(groupPeer: Refs.GroupOutPeer, fileLocation: Refs.FileLocation, rid: Long) extends RpcRequest
+    case class RequestEditGroupAvatar(groupPeer: Refs.GroupOutPeer, fileLocation: Refs.FileLocation, rid: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(groupPeer.getSerializedSize)
+        groupPeer.writeTo(out)
+        out.writeTag(3, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(fileLocation.getSerializedSize)
+        fileLocation.writeTo(out)
+        out.writeInt64(4, rid)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = groupPeer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + ({
+          val size = fileLocation.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(3) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestEditGroupAvatar {
       val header = 86
       val Response = Refs.ResponseEditGroupAvatar
@@ -3966,7 +5818,29 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseEditGroupAvatar(avatar: Refs.Avatar, seq: Int, state: Array[Byte], date: Long) extends RpcResponse
+    case class ResponseEditGroupAvatar(avatar: Refs.Avatar, seq: Int, state: Array[Byte], date: Long) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(avatar.getSerializedSize)
+        avatar.writeTo(out)
+        out.writeInt32(2, seq)
+        out.writeByteArray(3, state)
+        out.writeInt64(4, date)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = avatar.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, seq)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(3, state)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, date))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseEditGroupAvatar {
       val header = 115
       case class Partial(eitheravatar: Either[Refs.Avatar.Partial, Refs.Avatar], optseq: Option[Int], optstate: Option[Array[Byte]], optdate: Option[Long]) {
@@ -3999,7 +5873,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optseq = Some(in.readInt32())))
             }
             case 26 => {
-              doParse(partialMessage.copy(optstate = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optstate = Some(in.readByteArray())))
             }
             case 32 => {
               doParse(partialMessage.copy(optdate = Some(in.readInt64())))
@@ -4015,7 +5889,27 @@ package im.actor.api {
         })
       }
     }
-    case class RequestRemoveGroupAvatar(groupPeer: Refs.GroupOutPeer, rid: Long) extends RpcRequest
+    case class RequestRemoveGroupAvatar(groupPeer: Refs.GroupOutPeer, rid: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(groupPeer.getSerializedSize)
+        groupPeer.writeTo(out)
+        out.writeInt64(4, rid)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = groupPeer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestRemoveGroupAvatar {
       val header = 101
       val Response = Refs.ResponseSeqDate
@@ -4057,7 +5951,33 @@ package im.actor.api {
         })
       }
     }
-    case class RequestInviteUser(groupPeer: Refs.GroupOutPeer, user: Refs.UserOutPeer, rid: Long) extends RpcRequest
+    case class RequestInviteUser(groupPeer: Refs.GroupOutPeer, user: Refs.UserOutPeer, rid: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(groupPeer.getSerializedSize)
+        groupPeer.writeTo(out)
+        out.writeTag(3, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(user.getSerializedSize)
+        user.writeTo(out)
+        out.writeInt64(4, rid)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = groupPeer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + ({
+          val size = user.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(3) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestInviteUser {
       val header = 69
       val Response = Refs.ResponseSeqDate
@@ -4110,7 +6030,27 @@ package im.actor.api {
         })
       }
     }
-    case class RequestLeaveGroup(groupPeer: Refs.GroupOutPeer, rid: Long) extends RpcRequest
+    case class RequestLeaveGroup(groupPeer: Refs.GroupOutPeer, rid: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(groupPeer.getSerializedSize)
+        groupPeer.writeTo(out)
+        out.writeInt64(2, rid)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = groupPeer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestLeaveGroup {
       val header = 70
       val Response = Refs.ResponseSeqDate
@@ -4152,7 +6092,33 @@ package im.actor.api {
         })
       }
     }
-    case class RequestKickUser(groupPeer: Refs.GroupOutPeer, user: Refs.UserOutPeer, rid: Long) extends RpcRequest
+    case class RequestKickUser(groupPeer: Refs.GroupOutPeer, user: Refs.UserOutPeer, rid: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(groupPeer.getSerializedSize)
+        groupPeer.writeTo(out)
+        out.writeTag(3, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(user.getSerializedSize)
+        user.writeTo(out)
+        out.writeInt64(4, rid)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = groupPeer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + ({
+          val size = user.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(3) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestKickUser {
       val header = 71
       val Response = Refs.ResponseSeqDate
@@ -4205,7 +6171,24 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateGroupInvite(groupId: Int, inviteUid: Int, date: Long, rid: Long) extends Update
+    case class UpdateGroupInvite(groupId: Int, inviteUid: Int, date: Long, rid: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, groupId)
+        out.writeInt32(5, inviteUid)
+        out.writeInt64(8, date)
+        out.writeInt64(9, rid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, groupId)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(5, inviteUid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(8, date)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(9, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateGroupInvite {
       val header = 36
       case class Partial(optgroupId: Option[Int], optinviteUid: Option[Int], optdate: Option[Long], optrid: Option[Long]) {
@@ -4247,7 +6230,25 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateGroupUserAdded(groupId: Int, uid: Int, inviterUid: Int, date: Long, rid: Long) extends Update
+    case class UpdateGroupUserAdded(groupId: Int, uid: Int, inviterUid: Int, date: Long, rid: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, groupId)
+        out.writeInt32(2, uid)
+        out.writeInt32(3, inviterUid)
+        out.writeInt64(4, date)
+        out.writeInt64(5, rid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, groupId)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, uid)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(3, inviterUid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, date)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(5, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateGroupUserAdded {
       val header = 21
       case class Partial(optgroupId: Option[Int], optuid: Option[Int], optinviterUid: Option[Int], optdate: Option[Long], optrid: Option[Long]) {
@@ -4293,7 +6294,24 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateGroupUserLeave(groupId: Int, uid: Int, date: Long, rid: Long) extends Update
+    case class UpdateGroupUserLeave(groupId: Int, uid: Int, date: Long, rid: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, groupId)
+        out.writeInt32(2, uid)
+        out.writeInt64(3, date)
+        out.writeInt64(4, rid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, groupId)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, uid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, date)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateGroupUserLeave {
       val header = 23
       case class Partial(optgroupId: Option[Int], optuid: Option[Int], optdate: Option[Long], optrid: Option[Long]) {
@@ -4335,7 +6353,25 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateGroupUserKick(groupId: Int, uid: Int, kickerUid: Int, date: Long, rid: Long) extends Update
+    case class UpdateGroupUserKick(groupId: Int, uid: Int, kickerUid: Int, date: Long, rid: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, groupId)
+        out.writeInt32(2, uid)
+        out.writeInt32(3, kickerUid)
+        out.writeInt64(4, date)
+        out.writeInt64(5, rid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, groupId)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, uid)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(3, kickerUid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, date)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(5, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateGroupUserKick {
       val header = 24
       case class Partial(optgroupId: Option[Int], optuid: Option[Int], optkickerUid: Option[Int], optdate: Option[Long], optrid: Option[Long]) {
@@ -4381,7 +6417,29 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateGroupMembersUpdate(groupId: Int, members: Vector[Refs.Member]) extends Update
+    case class UpdateGroupMembersUpdate(groupId: Int, members: Vector[Refs.Member]) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, groupId)
+        members foreach { x =>
+          out.writeTag(2, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, groupId)) + ((members map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(2) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateGroupMembersUpdate {
       val header = 44
       case class Partial(optgroupId: Option[Int], eithersmembers: Vector[Either[Refs.Member.Partial, Refs.Member]]) {
@@ -4428,7 +6486,25 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateGroupTitleChanged(groupId: Int, uid: Int, title: String, date: Long, rid: Long) extends Update
+    case class UpdateGroupTitleChanged(groupId: Int, uid: Int, title: String, date: Long, rid: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, groupId)
+        out.writeInt32(2, uid)
+        out.writeString(3, title)
+        out.writeInt64(4, date)
+        out.writeInt64(5, rid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, groupId)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, uid)) + (com.google.protobuf.CodedOutputStream.computeStringSize(3, title)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, date)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(5, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateGroupTitleChanged {
       val header = 38
       case class Partial(optgroupId: Option[Int], optuid: Option[Int], opttitle: Option[String], optdate: Option[Long], optrid: Option[Long]) {
@@ -4474,7 +6550,32 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateGroupAvatarChanged(groupId: Int, uid: Int, avatar: Option[Refs.Avatar], date: Long, rid: Long) extends Update
+    case class UpdateGroupAvatarChanged(groupId: Int, uid: Int, avatar: Option[Refs.Avatar], date: Long, rid: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, groupId)
+        out.writeInt32(2, uid)
+        avatar foreach { x =>
+          out.writeTag(3, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        out.writeInt64(4, date)
+        out.writeInt64(5, rid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, groupId)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, uid)) + (avatar map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(3) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        } getOrElse(0)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, date)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(5, rid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateGroupAvatarChanged {
       val header = 39
       case class Partial(optgroupId: Option[Int], optuid: Option[Int], opteitheravatar: Option[Option[Either[Refs.Avatar.Partial, Refs.Avatar]]], optdate: Option[Long], optrid: Option[Long]) {
@@ -4536,14 +6637,41 @@ package im.actor.api {
     }
   }
   package conversations {
-    trait MessageState
-    object MessageState extends Enumeration with MessageState {
+    trait MessageState extends Enumeration
+    object MessageState extends MessageState {
       type MessageState = Value
       val Sent: MessageState = Value(1)
       val Received: MessageState = Value(2)
       val Read: MessageState = Value(3)
     }
-    case class HistoryMessage(senderUid: Int, rid: Long, date: Long, message: Refs.MessageContent, state: Option[Refs.MessageState])
+    case class HistoryMessage(senderUid: Int, rid: Long, date: Long, message: Refs.MessageContent, state: Option[Refs.MessageState]) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, senderUid)
+        out.writeInt64(2, rid)
+        out.writeInt64(3, date)
+        out.writeTag(5, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(message.getSerializedSize)
+        message.writeTo(out)
+        state foreach { x =>
+          out.writeEnum(6, x.id)
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, senderUid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, rid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, date)) + ({
+          val size = message.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(5) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (state map { x =>
+          com.google.protobuf.CodedOutputStream.computeEnumSize(6, x.id)
+        } getOrElse(0))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object HistoryMessage {
       case class Partial(optsenderUid: Option[Int], optrid: Option[Long], optdate: Option[Long], eithermessage: Either[Refs.MessageContent.Partial, Refs.MessageContent], optstate: Option[Option[Refs.MessageState]]) {
         def toComplete: Option[HistoryMessage] = {
@@ -4597,7 +6725,28 @@ package im.actor.api {
         })
       }
     }
-    case class RequestLoadHistory(peer: Refs.OutPeer, startDate: Long, limit: Int) extends RpcRequest
+    case class RequestLoadHistory(peer: Refs.OutPeer, startDate: Long, limit: Int) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt64(3, startDate)
+        out.writeInt32(4, limit)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, startDate)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(4, limit))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestLoadHistory {
       val header = 118
       val Response = Refs.ResponseLoadHistory
@@ -4643,7 +6792,36 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseLoadHistory(history: Vector[Refs.HistoryMessage], users: Vector[Refs.User]) extends RpcResponse
+    case class ResponseLoadHistory(history: Vector[Refs.HistoryMessage], users: Vector[Refs.User]) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        history foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        users foreach { x =>
+          out.writeTag(2, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((history map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + ((users map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(2) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseLoadHistory {
       val header = 119
       case class Partial(eithershistory: Vector[Either[Refs.HistoryMessage.Partial, Refs.HistoryMessage]], eithersusers: Vector[Either[Refs.User.Partial, Refs.User]]) {
@@ -4703,7 +6881,42 @@ package im.actor.api {
         })
       }
     }
-    case class Dialog(peer: Refs.Peer, unreadCount: Int, sortDate: Long, senderUid: Int, rid: Long, date: Long, message: Refs.MessageContent, state: Option[Refs.MessageState])
+    case class Dialog(peer: Refs.Peer, unreadCount: Int, sortDate: Long, senderUid: Int, rid: Long, date: Long, message: Refs.MessageContent, state: Option[Refs.MessageState]) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt32(3, unreadCount)
+        out.writeInt64(4, sortDate)
+        out.writeInt32(5, senderUid)
+        out.writeInt64(6, rid)
+        out.writeInt64(7, date)
+        out.writeTag(8, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(message.getSerializedSize)
+        message.writeTo(out)
+        state foreach { x =>
+          out.writeEnum(9, x.id)
+        }
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt32Size(3, unreadCount)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, sortDate)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(5, senderUid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(6, rid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(7, date)) + ({
+          val size = message.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(8) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (state map { x =>
+          com.google.protobuf.CodedOutputStream.computeEnumSize(9, x.id)
+        } getOrElse(0))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object Dialog {
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer], optunreadCount: Option[Int], optsortDate: Option[Long], optsenderUid: Option[Int], optrid: Option[Long], optdate: Option[Long], eithermessage: Either[Refs.MessageContent.Partial, Refs.MessageContent], optstate: Option[Option[Refs.MessageState]]) {
         def toComplete: Option[Dialog] = {
@@ -4776,7 +6989,22 @@ package im.actor.api {
         })
       }
     }
-    case class RequestLoadDialogs(startDate: Long, limit: Int) extends RpcRequest
+    case class RequestLoadDialogs(startDate: Long, limit: Int) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt64(1, startDate)
+        out.writeInt32(2, limit)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt64Size(1, startDate)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, limit))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestLoadDialogs {
       val header = 104
       val Response = Refs.ResponseLoadDialogs
@@ -4811,7 +7039,44 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseLoadDialogs(groups: Vector[Refs.Group], users: Vector[Refs.User], dialogs: Vector[Refs.Dialog]) extends RpcResponse
+    case class ResponseLoadDialogs(groups: Vector[Refs.Group], users: Vector[Refs.User], dialogs: Vector[Refs.Dialog]) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        groups foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        users foreach { x =>
+          out.writeTag(2, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        dialogs foreach { x =>
+          out.writeTag(3, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((groups map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + ((users map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(2) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + ((dialogs map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(3) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseLoadDialogs {
       val header = 105
       case class Partial(eithersgroups: Vector[Either[Refs.Group.Partial, Refs.Group]], eithersusers: Vector[Either[Refs.User.Partial, Refs.User]], eithersdialogs: Vector[Either[Refs.Dialog.Partial, Refs.Dialog]]) {
@@ -4890,7 +7155,22 @@ package im.actor.api {
     }
   }
   package encryption {
-    case class UserKey(uid: Int, keyHash: Long)
+    case class UserKey(uid: Int, keyHash: Long) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt64(2, keyHash)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, keyHash))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UserKey {
       case class Partial(optuid: Option[Int], optkeyHash: Option[Long]) {
         def toComplete: Option[UserKey] = {
@@ -4923,7 +7203,23 @@ package im.actor.api {
         })
       }
     }
-    case class PublicKey(uid: Int, keyHash: Long, key: Array[Byte])
+    case class PublicKey(uid: Int, keyHash: Long, key: Array[Byte]) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt64(2, keyHash)
+        out.writeByteArray(3, key)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, keyHash)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(3, key))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object PublicKey {
       case class Partial(optuid: Option[Int], optkeyHash: Option[Long], optkey: Option[Array[Byte]]) {
         def toComplete: Option[PublicKey] = {
@@ -4947,7 +7243,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optkeyHash = Some(in.readInt64())))
             }
             case 26 => {
-              doParse(partialMessage.copy(optkey = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optkey = Some(in.readByteArray())))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -4960,7 +7256,28 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateNewDevice(uid: Int, keyHash: Long, key: Option[Array[Byte]], date: Long) extends Update
+    case class UpdateNewDevice(uid: Int, keyHash: Long, key: Option[Array[Byte]], date: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt64(2, keyHash)
+        key foreach { x =>
+          out.writeByteArray(3, x)
+        }
+        out.writeInt64(4, date)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, keyHash)) + (key map { x =>
+          com.google.protobuf.CodedOutputStream.computeByteArraySize(3, x)
+        } getOrElse(0)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(4, date))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateNewDevice {
       val header = 2
       case class Partial(optuid: Option[Int], optkeyHash: Option[Long], optkey: Option[Option[Array[Byte]]], optdate: Option[Long]) {
@@ -4986,7 +7303,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optkeyHash = Some(in.readInt64())))
             }
             case 26 => {
-              doParse(partialMessage.copy(optkey = Some(Some(in.readBytes().toByteArray()))))
+              doParse(partialMessage.copy(optkey = Some(Some(in.readByteArray()))))
             }
             case 32 => {
               doParse(partialMessage.copy(optdate = Some(in.readInt64())))
@@ -5002,7 +7319,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateRemovedDevice(uid: Int, keyHash: Long) extends Update
+    case class UpdateRemovedDevice(uid: Int, keyHash: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt64(2, keyHash)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, keyHash))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateRemovedDevice {
       val header = 37
       case class Partial(optuid: Option[Int], optkeyHash: Option[Long]) {
@@ -5036,7 +7368,23 @@ package im.actor.api {
         })
       }
     }
-    case class PublicKeyRequest(uid: Int, accessHash: Long, keyHash: Long)
+    case class PublicKeyRequest(uid: Int, accessHash: Long, keyHash: Long) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt64(2, accessHash)
+        out.writeInt64(3, keyHash)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, accessHash)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, keyHash))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object PublicKeyRequest {
       case class Partial(optuid: Option[Int], optaccessHash: Option[Long], optkeyHash: Option[Long]) {
         def toComplete: Option[PublicKeyRequest] = {
@@ -5073,7 +7421,28 @@ package im.actor.api {
         })
       }
     }
-    case class RequestGetPublicKeys(keys: Vector[Refs.PublicKeyRequest]) extends RpcRequest
+    case class RequestGetPublicKeys(keys: Vector[Refs.PublicKeyRequest]) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        keys foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((keys map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestGetPublicKeys {
       val header = 6
       val Response = Refs.ResponseGetPublicKeys
@@ -5116,7 +7485,28 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseGetPublicKeys(keys: Vector[Refs.PublicKey]) extends RpcResponse
+    case class ResponseGetPublicKeys(keys: Vector[Refs.PublicKey]) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        keys foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((keys map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseGetPublicKeys {
       val header = 24
       case class Partial(eitherskeys: Vector[Either[Refs.PublicKey.Partial, Refs.PublicKey]]) {
@@ -5160,7 +7550,27 @@ package im.actor.api {
     }
   }
   package weak {
-    case class RequestTyping(peer: Refs.OutPeer, typingType: Int) extends RpcRequest
+    case class RequestTyping(peer: Refs.OutPeer, typingType: Int) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt32(3, typingType)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt32Size(3, typingType))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestTyping {
       val header = 27
       val Response = Refs.ResponseVoid
@@ -5202,7 +7612,22 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSetOnline(isOnline: Boolean, timeout: Long) extends RpcRequest
+    case class RequestSetOnline(isOnline: Boolean, timeout: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeBool(1, isOnline)
+        out.writeInt64(2, timeout)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeBoolSize(1, isOnline)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, timeout))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestSetOnline {
       val header = 29
       val Response = Refs.ResponseVoid
@@ -5237,7 +7662,28 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateTyping(peer: Refs.Peer, uid: Int, typingType: Int) extends Update
+    case class UpdateTyping(peer: Refs.Peer, uid: Int, typingType: Int) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(peer.getSerializedSize)
+        peer.writeTo(out)
+        out.writeInt32(2, uid)
+        out.writeInt32(3, typingType)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = peer.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, uid)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(3, typingType))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateTyping {
       val header = 6
       case class Partial(eitherpeer: Either[Refs.Peer.Partial, Refs.Peer], optuid: Option[Int], opttypingType: Option[Int]) {
@@ -5282,7 +7728,21 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateUserOnline(uid: Int) extends Update
+    case class UpdateUserOnline(uid: Int) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateUserOnline {
       val header = 7
       case class Partial(optuid: Option[Int]) {
@@ -5311,7 +7771,21 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateUserOffline(uid: Int) extends Update
+    case class UpdateUserOffline(uid: Int) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateUserOffline {
       val header = 8
       case class Partial(optuid: Option[Int]) {
@@ -5340,7 +7814,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateUserLastSeen(uid: Int, date: Long) extends Update
+    case class UpdateUserLastSeen(uid: Int, date: Long) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt64(2, date)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, date))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateUserLastSeen {
       val header = 9
       case class Partial(optuid: Option[Int], optdate: Option[Long]) {
@@ -5374,7 +7863,22 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateGroupOnline(groupId: Int, count: Int) extends Update
+    case class UpdateGroupOnline(groupId: Int, count: Int) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, groupId)
+        out.writeInt32(2, count)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, groupId)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, count))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateGroupOnline {
       val header = 33
       case class Partial(optgroupId: Option[Int], optcount: Option[Int]) {
@@ -5410,7 +7914,22 @@ package im.actor.api {
     }
   }
   package files {
-    case class FileLocation(fileId: Long, accessHash: Long)
+    case class FileLocation(fileId: Long, accessHash: Long) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt64(1, fileId)
+        out.writeInt64(2, accessHash)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt64Size(1, fileId)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, accessHash))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object FileLocation {
       case class Partial(optfileId: Option[Long], optaccessHash: Option[Long]) {
         def toComplete: Option[FileLocation] = {
@@ -5443,7 +7962,29 @@ package im.actor.api {
         })
       }
     }
-    case class AvatarImage(fileLocation: Refs.FileLocation, width: Int, height: Int, fileSize: Int)
+    case class AvatarImage(fileLocation: Refs.FileLocation, width: Int, height: Int, fileSize: Int) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(fileLocation.getSerializedSize)
+        fileLocation.writeTo(out)
+        out.writeInt32(2, width)
+        out.writeInt32(3, height)
+        out.writeInt32(4, fileSize)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = fileLocation.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, width)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(3, height)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(4, fileSize))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object AvatarImage {
       case class Partial(eitherfileLocation: Either[Refs.FileLocation.Partial, Refs.FileLocation], optwidth: Option[Int], optheight: Option[Int], optfileSize: Option[Int]) {
         def toComplete: Option[AvatarImage] = {
@@ -5491,7 +8032,44 @@ package im.actor.api {
         })
       }
     }
-    case class Avatar(smallImage: Option[Refs.AvatarImage], largeImage: Option[Refs.AvatarImage], fullImage: Option[Refs.AvatarImage])
+    case class Avatar(smallImage: Option[Refs.AvatarImage], largeImage: Option[Refs.AvatarImage], fullImage: Option[Refs.AvatarImage]) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        smallImage foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        largeImage foreach { x =>
+          out.writeTag(2, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        fullImage foreach { x =>
+          out.writeTag(3, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        (smallImage map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        } getOrElse(0)) + (largeImage map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(2) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        } getOrElse(0)) + (fullImage map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(3) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        } getOrElse(0))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object Avatar {
       case class Partial(opteithersmallImage: Option[Option[Either[Refs.AvatarImage.Partial, Refs.AvatarImage]]], opteitherlargeImage: Option[Option[Either[Refs.AvatarImage.Partial, Refs.AvatarImage]]], opteitherfullImage: Option[Option[Either[Refs.AvatarImage.Partial, Refs.AvatarImage]]]) {
         def toComplete: Option[Avatar] = {
@@ -5570,7 +8148,23 @@ package im.actor.api {
         })
       }
     }
-    case class FastThumb(w: Int, h: Int, thumb: Array[Byte])
+    case class FastThumb(w: Int, h: Int, thumb: Array[Byte]) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, w)
+        out.writeInt32(2, h)
+        out.writeByteArray(3, thumb)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, w)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, h)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(3, thumb))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object FastThumb {
       case class Partial(optw: Option[Int], opth: Option[Int], optthumb: Option[Array[Byte]]) {
         def toComplete: Option[FastThumb] = {
@@ -5594,7 +8188,7 @@ package im.actor.api {
               doParse(partialMessage.copy(opth = Some(in.readInt32())))
             }
             case 26 => {
-              doParse(partialMessage.copy(optthumb = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optthumb = Some(in.readByteArray())))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -5607,7 +8201,28 @@ package im.actor.api {
         })
       }
     }
-    case class RequestGetFile(fileLocation: Refs.FileLocation, offset: Int, limit: Int) extends RpcRequest
+    case class RequestGetFile(fileLocation: Refs.FileLocation, offset: Int, limit: Int) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(fileLocation.getSerializedSize)
+        fileLocation.writeTo(out)
+        out.writeInt32(2, offset)
+        out.writeInt32(3, limit)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = fileLocation.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, offset)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(3, limit))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestGetFile {
       val header = 16
       val Response = Refs.ResponseGetFile
@@ -5653,7 +8268,21 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseGetFile(payload: Array[Byte]) extends RpcResponse
+    case class ResponseGetFile(payload: Array[Byte]) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeByteArray(1, payload)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeByteArraySize(1, payload))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseGetFile {
       val header = 17
       case class Partial(optpayload: Option[Array[Byte]]) {
@@ -5669,7 +8298,7 @@ package im.actor.api {
         def doParse(partialMessage: Partial): Partial = {
           in.readTag() match {
             case 10 => {
-              doParse(partialMessage.copy(optpayload = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optpayload = Some(in.readByteArray())))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -5682,7 +8311,21 @@ package im.actor.api {
         })
       }
     }
-    case class UploadConfig(serverData: Array[Byte])
+    case class UploadConfig(serverData: Array[Byte]) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeByteArray(1, serverData)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeByteArraySize(1, serverData))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UploadConfig {
       case class Partial(optserverData: Option[Array[Byte]]) {
         def toComplete: Option[UploadConfig] = {
@@ -5697,7 +8340,7 @@ package im.actor.api {
         def doParse(partialMessage: Partial): Partial = {
           in.readTag() match {
             case 10 => {
-              doParse(partialMessage.copy(optserverData = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optserverData = Some(in.readByteArray())))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -5729,8 +8372,40 @@ package im.actor.api {
         doParse
         Right(RequestStartUpload)
       }
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        ()
+      }
+      def getSerializedSize: Int = {
+        0
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
     }
-    case class ResponseStartUpload(config: Refs.UploadConfig) extends RpcResponse
+    case class ResponseStartUpload(config: Refs.UploadConfig) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(config.getSerializedSize)
+        config.writeTo(out)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = config.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        })
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseStartUpload {
       val header = 19
       case class Partial(eitherconfig: Either[Refs.UploadConfig.Partial, Refs.UploadConfig]) {
@@ -5766,7 +8441,28 @@ package im.actor.api {
         })
       }
     }
-    case class RequestUploadPart(config: Refs.UploadConfig, blockIndex: Int, payload: Array[Byte]) extends RpcRequest
+    case class RequestUploadPart(config: Refs.UploadConfig, blockIndex: Int, payload: Array[Byte]) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(config.getSerializedSize)
+        config.writeTo(out)
+        out.writeInt32(2, blockIndex)
+        out.writeByteArray(3, payload)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = config.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, blockIndex)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(3, payload))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestUploadPart {
       val header = 20
       val Response = Refs.ResponseVoid
@@ -5799,7 +8495,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optblockIndex = Some(in.readInt32())))
             }
             case 26 => {
-              doParse(partialMessage.copy(optpayload = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optpayload = Some(in.readByteArray())))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -5812,7 +8508,28 @@ package im.actor.api {
         })
       }
     }
-    case class RequestCompleteUpload(config: Refs.UploadConfig, blocksCount: Int, crc32: Long) extends RpcRequest
+    case class RequestCompleteUpload(config: Refs.UploadConfig, blocksCount: Int, crc32: Long) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(config.getSerializedSize)
+        config.writeTo(out)
+        out.writeInt32(2, blocksCount)
+        out.writeInt64(3, crc32)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = config.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, blocksCount)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, crc32))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestCompleteUpload {
       val header = 22
       val Response = Refs.ResponseCompleteUpload
@@ -5858,7 +8575,26 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseCompleteUpload(location: Refs.FileLocation) extends RpcResponse
+    case class ResponseCompleteUpload(location: Refs.FileLocation) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(location.getSerializedSize)
+        location.writeTo(out)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = location.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        })
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseCompleteUpload {
       val header = 23
       case class Partial(eitherlocation: Either[Refs.FileLocation.Partial, Refs.FileLocation]) {
@@ -5896,7 +8632,22 @@ package im.actor.api {
     }
   }
   package push {
-    case class RequestRegisterGooglePush(projectId: Long, token: String) extends RpcRequest
+    case class RequestRegisterGooglePush(projectId: Long, token: String) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt64(1, projectId)
+        out.writeString(2, token)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt64Size(1, projectId)) + (com.google.protobuf.CodedOutputStream.computeStringSize(2, token))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestRegisterGooglePush {
       val header = 51
       val Response = Refs.ResponseVoid
@@ -5931,7 +8682,22 @@ package im.actor.api {
         })
       }
     }
-    case class RequestRegisterApplePush(apnsKey: Int, token: String) extends RpcRequest
+    case class RequestRegisterApplePush(apnsKey: Int, token: String) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, apnsKey)
+        out.writeString(2, token)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, apnsKey)) + (com.google.protobuf.CodedOutputStream.computeStringSize(2, token))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestRegisterApplePush {
       val header = 76
       val Response = Refs.ResponseVoid
@@ -5985,17 +8751,45 @@ package im.actor.api {
         doParse
         Right(RequestUnregisterPush)
       }
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        ()
+      }
+      def getSerializedSize: Int = {
+        0
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
     }
   }
   package peers {
-    trait PeerType
-    object PeerType extends Enumeration with PeerType {
+    trait PeerType extends Enumeration
+    object PeerType extends PeerType {
       type PeerType = Value
       val Private: PeerType = Value(1)
       val Group: PeerType = Value(2)
       val Email: PeerType = Value(3)
     }
-    case class Peer(`type`: Refs.PeerType, id: Int)
+    case class Peer(`type`: Refs.PeerType, id: Int) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeEnum(1, `type`.id)
+        out.writeInt32(2, id)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeEnumSize(1, `type`.id)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, id))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object Peer {
       case class Partial(opttype: Option[Refs.PeerType], optid: Option[Int]) {
         def toComplete: Option[Peer] = {
@@ -6030,7 +8824,23 @@ package im.actor.api {
         })
       }
     }
-    case class OutPeer(`type`: Refs.PeerType, id: Int, accessHash: Long)
+    case class OutPeer(`type`: Refs.PeerType, id: Int, accessHash: Long) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeEnum(1, `type`.id)
+        out.writeInt32(2, id)
+        out.writeInt64(3, accessHash)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeEnumSize(1, `type`.id)) + (com.google.protobuf.CodedOutputStream.computeInt32Size(2, id)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, accessHash))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object OutPeer {
       case class Partial(opttype: Option[Refs.PeerType], optid: Option[Int], optaccessHash: Option[Long]) {
         def toComplete: Option[OutPeer] = {
@@ -6069,7 +8879,22 @@ package im.actor.api {
         })
       }
     }
-    case class UserOutPeer(uid: Int, accessHash: Long)
+    case class UserOutPeer(uid: Int, accessHash: Long) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, uid)
+        out.writeInt64(2, accessHash)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, uid)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, accessHash))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UserOutPeer {
       case class Partial(optuid: Option[Int], optaccessHash: Option[Long]) {
         def toComplete: Option[UserOutPeer] = {
@@ -6102,7 +8927,22 @@ package im.actor.api {
         })
       }
     }
-    case class GroupOutPeer(groupId: Int, accessHash: Long)
+    case class GroupOutPeer(groupId: Int, accessHash: Long) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, groupId)
+        out.writeInt64(2, accessHash)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, groupId)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(2, accessHash))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object GroupOutPeer {
       case class Partial(optgroupId: Option[Int], optaccessHash: Option[Long]) {
         def toComplete: Option[GroupOutPeer] = {
@@ -6160,8 +9000,36 @@ package im.actor.api {
         doParse
         Right(RequestGetState)
       }
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        ()
+      }
+      def getSerializedSize: Int = {
+        0
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
     }
-    case class DifferenceUpdate(updateHeader: Int, update: Array[Byte])
+    case class DifferenceUpdate(updateHeader: Int, update: Array[Byte]) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, updateHeader)
+        out.writeByteArray(2, update)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, updateHeader)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(2, update))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object DifferenceUpdate {
       case class Partial(optupdateHeader: Option[Int], optupdate: Option[Array[Byte]]) {
         def toComplete: Option[DifferenceUpdate] = {
@@ -6181,7 +9049,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optupdateHeader = Some(in.readInt32())))
             }
             case 18 => {
-              doParse(partialMessage.copy(optupdate = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optupdate = Some(in.readByteArray())))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -6194,7 +9062,22 @@ package im.actor.api {
         })
       }
     }
-    case class RequestGetDifference(seq: Int, state: Array[Byte]) extends RpcRequest
+    case class RequestGetDifference(seq: Int, state: Array[Byte]) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, seq)
+        out.writeByteArray(2, state)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, seq)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(2, state))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestGetDifference {
       val header = 11
       val Response = Refs.ResponseGetDifference
@@ -6216,7 +9099,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optseq = Some(in.readInt32())))
             }
             case 18 => {
-              doParse(partialMessage.copy(optstate = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optstate = Some(in.readByteArray())))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -6229,7 +9112,63 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseGetDifference(seq: Int, state: Array[Byte], users: Vector[Refs.User], updates: Vector[Refs.DifferenceUpdate], needMore: Boolean, groups: Vector[Refs.Group], phones: Vector[Refs.Phone], emails: Vector[Refs.Email]) extends RpcResponse
+    case class ResponseGetDifference(seq: Int, state: Array[Byte], users: Vector[Refs.User], updates: Vector[Refs.DifferenceUpdate], needMore: Boolean, groups: Vector[Refs.Group], phones: Vector[Refs.Phone], emails: Vector[Refs.Email]) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, seq)
+        out.writeByteArray(2, state)
+        users foreach { x =>
+          out.writeTag(3, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        updates foreach { x =>
+          out.writeTag(4, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        out.writeBool(5, needMore)
+        groups foreach { x =>
+          out.writeTag(6, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        phones foreach { x =>
+          out.writeTag(7, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+        emails foreach { x =>
+          out.writeTag(8, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, seq)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(2, state)) + ((users map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(3) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + ((updates map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(4) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + (com.google.protobuf.CodedOutputStream.computeBoolSize(5, needMore)) + ((groups map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(6) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + ((phones map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(7) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _)) + ((emails map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(8) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseGetDifference {
       val header = 12
       case class Partial(optseq: Option[Int], optstate: Option[Array[Byte]], eithersusers: Vector[Either[Refs.User.Partial, Refs.User]], eithersupdates: Vector[Either[Refs.DifferenceUpdate.Partial, Refs.DifferenceUpdate]], optneedMore: Option[Boolean], eithersgroups: Vector[Either[Refs.Group.Partial, Refs.Group]], eithersphones: Vector[Either[Refs.Phone.Partial, Refs.Phone]], eithersemails: Vector[Either[Refs.Email.Partial, Refs.Email]]) {
@@ -6311,7 +9250,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optseq = Some(in.readInt32())))
             }
             case 18 => {
-              doParse(partialMessage.copy(optstate = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optstate = Some(in.readByteArray())))
             }
             case 26 => {
               doParse(partialMessage.copy(eithersusers = partialMessage.eithersusers :+ {
@@ -6352,7 +9291,28 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSubscribeToOnline(users: Vector[Refs.UserOutPeer]) extends RpcRequest
+    case class RequestSubscribeToOnline(users: Vector[Refs.UserOutPeer]) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        users foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((users map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestSubscribeToOnline {
       val header = 32
       val Response = Refs.ResponseVoid
@@ -6395,7 +9355,28 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSubscribeFromOnline(users: Vector[Refs.UserOutPeer]) extends RpcRequest
+    case class RequestSubscribeFromOnline(users: Vector[Refs.UserOutPeer]) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        users foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((users map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestSubscribeFromOnline {
       val header = 33
       val Response = Refs.ResponseVoid
@@ -6438,7 +9419,28 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSubscribeToGroupOnline(groups: Vector[Refs.GroupOutPeer]) extends RpcRequest
+    case class RequestSubscribeToGroupOnline(groups: Vector[Refs.GroupOutPeer]) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        groups foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((groups map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestSubscribeToGroupOnline {
       val header = 74
       val Response = Refs.ResponseVoid
@@ -6481,7 +9483,28 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSubscribeFromGroupOnline(groups: Vector[Refs.GroupOutPeer]) extends RpcRequest
+    case class RequestSubscribeFromGroupOnline(groups: Vector[Refs.GroupOutPeer]) extends RpcRequest {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        groups foreach { x =>
+          out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+          out.writeRawVarint32(x.getSerializedSize)
+          x.writeTo(out)
+        }
+      }
+      def getSerializedSize: Int = {
+        ((groups map { x =>
+          val size = x.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        }).foldLeft(0)(_ + _))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object RequestSubscribeFromGroupOnline {
       val header = 75
       val Response = Refs.ResponseVoid
@@ -6544,8 +9567,36 @@ package im.actor.api {
         doParse
         Right(ResponseVoid)
       }
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        ()
+      }
+      def getSerializedSize: Int = {
+        0
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
     }
-    case class ResponseSeq(seq: Int, state: Array[Byte]) extends RpcResponse
+    case class ResponseSeq(seq: Int, state: Array[Byte]) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, seq)
+        out.writeByteArray(2, state)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, seq)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(2, state))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseSeq {
       val header = 72
       case class Partial(optseq: Option[Int], optstate: Option[Array[Byte]]) {
@@ -6566,7 +9617,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optseq = Some(in.readInt32())))
             }
             case 18 => {
-              doParse(partialMessage.copy(optstate = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optstate = Some(in.readByteArray())))
             }
             case 0 => partialMessage
             case default => if (in.skipField(default) == true) doParse(partialMessage)
@@ -6579,7 +9630,23 @@ package im.actor.api {
         })
       }
     }
-    case class ResponseSeqDate(seq: Int, state: Array[Byte], date: Long) extends RpcResponse
+    case class ResponseSeqDate(seq: Int, state: Array[Byte], date: Long) extends RpcResponse {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, seq)
+        out.writeByteArray(2, state)
+        out.writeInt64(3, date)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, seq)) + (com.google.protobuf.CodedOutputStream.computeByteArraySize(2, state)) + (com.google.protobuf.CodedOutputStream.computeInt64Size(3, date))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object ResponseSeqDate {
       val header = 102
       case class Partial(optseq: Option[Int], optstate: Option[Array[Byte]], optdate: Option[Long]) {
@@ -6601,7 +9668,7 @@ package im.actor.api {
               doParse(partialMessage.copy(optseq = Some(in.readInt32())))
             }
             case 18 => {
-              doParse(partialMessage.copy(optstate = Some(in.readBytes().toByteArray())))
+              doParse(partialMessage.copy(optstate = Some(in.readByteArray())))
             }
             case 24 => {
               doParse(partialMessage.copy(optdate = Some(in.readInt64())))
@@ -6617,7 +9684,21 @@ package im.actor.api {
         })
       }
     }
-    case class Config(maxGroupSize: Int)
+    case class Config(maxGroupSize: Int) {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeInt32(1, maxGroupSize)
+      }
+      def getSerializedSize: Int = {
+        (com.google.protobuf.CodedOutputStream.computeInt32Size(1, maxGroupSize))
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object Config {
       case class Partial(optmaxGroupSize: Option[Int]) {
         def toComplete: Option[Config] = {
@@ -6645,7 +9726,26 @@ package im.actor.api {
         })
       }
     }
-    case class UpdateConfig(config: Refs.Config) extends Update
+    case class UpdateConfig(config: Refs.Config) extends Update {
+      def writeTo(out: com.google.protobuf.CodedOutputStream) {
+        out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
+        out.writeRawVarint32(config.getSerializedSize)
+        config.writeTo(out)
+      }
+      def getSerializedSize: Int = {
+        ({
+          val size = config.getSerializedSize
+          com.google.protobuf.CodedOutputStream.computeTagSize(1) + com.google.protobuf.CodedOutputStream.computeRawVarint32Size(size) + size
+        })
+      }
+      def toByteArray: Array[Byte] = {
+        val res = new Array[Byte](getSerializedSize)
+        val out = com.google.protobuf.CodedOutputStream.newInstance(res)
+        writeTo(out)
+        out.checkNoSpaceLeft()
+        res
+      }
+    }
     object UpdateConfig {
       val header = 42
       case class Partial(eitherconfig: Either[Refs.Config.Partial, Refs.Config]) {
