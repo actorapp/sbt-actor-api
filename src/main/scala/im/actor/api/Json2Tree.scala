@@ -11,27 +11,31 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
   val rootObj = jsonAst.convertTo[JsObject]
 
   val aliases: Map[String, String] = rootObj.withField("aliases") {
-      case JsArray(jsAliases) =>
-        jsAliases.map { jsAlias =>
-          val alias = aliasFormat.read(jsAlias)
-          (alias.alias, alias.typ)
-        }.toMap
-      case _ => deserializationError("Aliases should be JsArray")
-    }
+    case JsArray(jsAliases) =>
+      jsAliases.map { jsAlias =>
+        val alias = aliasFormat.read(jsAlias)
+        (alias.alias, alias.typ)
+      }.toMap
+    case _ => deserializationError("Aliases should be JsArray")
+  }
 
   def convert(): String = {
-    val refsTreesSeq: Vector[(Vector[Tree], Tree)] = rootObj.fields("sections").convertTo[JsArray].elements map {
+    val packages: Vector[(String, Vector[Item])] = rootObj.fields("sections").convertTo[JsArray].elements map {
       case obj: JsObject =>
         obj.fields("package") match {
           case JsString(packageName) =>
-            val (globalRefs, block) = itemsBlock(packageName, obj.fields("items").convertTo[JsArray].elements)
-
-            (globalRefs, PACKAGE(packageName) := block)
+            (packageName, items(obj.fields("items").convertTo[JsArray].elements))
           case _ =>
             throw new Exception("package field is not a JsString")
         }
       case _ =>
         throw new Exception("section is not a JsObject")
+    }
+
+    val refsTreesSeq: Vector[(Vector[Tree], Tree)] = packages map {
+      case (packageName, items) =>
+        val (globalRefs, block) = itemsBlock(packageName, items)
+        (globalRefs, PACKAGE(packageName) := block)
     }
 
     val (globalRefsV, packageTrees) = refsTreesSeq.unzip
@@ -48,6 +52,26 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
         globalRefsTree, parseExceptionDef, updateBoxDef, updateDef, rpcRequestDef, rpcResponseDef
       ))
     treeToString(tree)
+  }
+
+  private def items(jsonElements: Vector[JsValue]): Vector[Item] = {
+    jsonElements flatMap {
+      case obj: JsObject =>
+        obj.getFields("type", "content") match {
+          case Seq(JsString("rpc"), o: JsObject) => Some(o.convertTo[RpcContent])
+          case Seq(JsString("response"), o: JsObject) => Some(o.convertTo[NamedRpcResponse])
+          case Seq(JsString("update"), o: JsObject) => Some(o.convertTo[Update])
+          case Seq(JsString("update_box"), o: JsObject) => Some(o.convertTo[UpdateBox])
+          case Seq(JsString("struct"), o: JsObject) => Some(o.convertTo[Struct])
+          case Seq(JsString("enum"), o: JsObject) => Some(o.convertTo[Enum])
+          case Seq(JsString("trait"), o: JsObject) => Some(o.convertTo[Trait])
+          case Seq(JsString("comment"), _) => None
+          case Seq(JsString("empty")) => None
+          case Seq(JsString(typ), _) => throw new Exception(f"Unsupported item: $typ%s")
+          case _ => throw new Exception("Item type is not a JsString")
+        }
+      case _ => throw new Exception("item is not a JsObject")
+    }
   }
 
   private type TreesTraitsChildren = (Vector[Tree], Vector[Tree], Vector[Trait], Vector[NamedItem])
@@ -78,55 +102,19 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       a._4 ++ b._3
     )
 
-  private def itemsBlock(packageName: String, jsonElements: Vector[JsValue]): (Vector[Tree], Tree) = {
-    val (globalRefs, trees, traits, allChildren): TreesTraitsChildren = jsonElements.foldLeft[TreesTraitsChildren](
+  private def itemsBlock(packageName: String, items: Vector[Item]): (Vector[Tree], Tree) = {
+    val (globalRefs, trees, traits, allChildren): TreesTraitsChildren = items.foldLeft[TreesTraitsChildren](
       (Vector.empty, Vector.empty, Vector.empty, Vector.empty)
     ) {
-      case (trees, obj: JsObject) =>
-        obj.fields("type") match {
-          case JsString("rpc") =>
-            obj.withObjectField("content") { o =>
-              val rpc = o.convertTo[RpcContent]
-              merge(trees, rpcItemTrees(packageName, rpc))
-            }
-          case JsString("response") =>
-            obj.withObjectField("content") { o =>
-              val response = o.convertTo[NamedRpcResponse]
-              merge(trees, namedResponseItemTrees(packageName, response))
-            }
-          case JsString("update") =>
-            obj.withObjectField("content") { o =>
-              val update = o.convertTo[Update]
-              merge(trees, updateItemTrees(packageName, update))
-            }
-          case JsString("update_box") =>
-            obj.withObjectField("content") { o =>
-              val ub = o.convertTo[UpdateBox]
-              merge(trees, updateBoxItemTrees(packageName, ub))
-            }
-          case JsString("struct") =>
-            obj.withObjectField("content") { o =>
-              val struct = o.convertTo[Struct]
-              merge(trees, structItemTrees(packageName, struct))
-            }
-          case JsString("enum") =>
-            obj.withObjectField("content") { o =>
-              val enum = o.convertTo[Enum]
-              merge(trees, enumItemTrees(packageName, enum))
-            }
-          case JsString("trait") =>
-            obj.withObjectField("content") { o =>
-              val trai = o.convertTo[Trait]
-              merge(trees, Vector(trai))
-              //merge(trees, traitItemTrees(packageName, trai))
-            }
-          case JsString("comment") => trees
-          case JsString("empty") => trees
-          case JsString(typ) => throw new Exception(f"Unsupported item: $typ%s")
-          case _ => throw new Exception("Item type is not a JsString")
-        }
-      case _ =>
-        throw new Exception("item is not a JsObject")
+      case (trees, item: Item) => item match {
+        case rpc: RpcContent => merge(trees, rpcItemTrees(packageName, rpc))
+        case response: NamedRpcResponse => merge(trees, namedResponseItemTrees(packageName, response))
+        case update: Update => merge(trees, updateItemTrees(packageName, update))
+        case updateBox: UpdateBox => merge(trees, updateBoxItemTrees(packageName, updateBox))
+        case struct: Struct => merge(trees, structItemTrees(packageName, struct))
+        case enum: Enum => merge(trees, enumItemTrees(packageName, enum))
+        case trai: Trait => merge(trees, Vector(trai))
+      }
     }
 
     val (traitGlobalRefsV, traitTreesV): (Vector[Vector[Tree]], Vector[Vector[Tree]]) = (traits map (trai =>
