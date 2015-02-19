@@ -7,4 +7,8 @@ trait Hacks {
     case "MessageContent" => "type"
     case _ => "extType"
   }
+
+  def prettify(source: String): String = {
+    source.replace("doParse: Unit", "doParse(): Unit")
+  }
 }

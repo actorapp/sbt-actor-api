@@ -361,7 +361,7 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
             CASE(REF("default")) ==>
                 (
                   IF (REF("in") DOT("skipField") APPLY(REF("default")) ANY_== LIT(true)) THEN (
-                    REF("doParse")
+                    REF("doParse") APPLY()
                   ) ELSE BLOCK()
                 )
           )
@@ -374,7 +374,7 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
                 (REF("in") DOT("readTag()")) MATCH (cases)
               ),
 
-            REF("doParse"),
+            REF("doParse") APPLY(),
 
             REF("Right") APPLY(REF(name))
           )

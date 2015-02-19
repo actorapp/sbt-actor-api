@@ -51,7 +51,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       packageTrees ++ Vector(
         globalRefsTree, parseExceptionDef, updateBoxDef, updateDef, rpcRequestDef, rpcResponseDef
       ))
-    treeToString(tree)
+    prettify(treeToString(tree))
   }
 
   private def items(jsonElements: Vector[JsValue]): Vector[Item] = {

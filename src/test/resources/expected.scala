@@ -1,6 +1,7 @@
 package im.actor.api {
   package auth {
-    case class RequestSendAuthCode(phoneNumber: Long, appId: Int, apiKey: String) extends RpcRequest {
+    trait AuthRpcRequest extends RpcRequest
+    case class RequestSendAuthCode(phoneNumber: Long, appId: Int, apiKey: String) extends AuthRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt64(1, phoneNumber)
         out.writeInt32(2, appId)
@@ -104,7 +105,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSendAuthCall(phoneNumber: Long, smsHash: String, appId: Int, apiKey: String) extends RpcRequest {
+    case class RequestSendAuthCall(phoneNumber: Long, smsHash: String, appId: Int, apiKey: String) extends AuthRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt64(1, phoneNumber)
         out.writeString(2, smsHash)
@@ -242,7 +243,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSignIn(phoneNumber: Long, smsHash: String, smsCode: String, publicKey: Array[Byte], deviceHash: Array[Byte], deviceTitle: String, appId: Int, appKey: String) extends RpcRequest {
+    case class RequestSignIn(phoneNumber: Long, smsHash: String, smsCode: String, publicKey: Array[Byte], deviceHash: Array[Byte], deviceTitle: String, appId: Int, appKey: String) extends AuthRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt64(1, phoneNumber)
         out.writeString(2, smsHash)
@@ -322,7 +323,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSignUp(phoneNumber: Long, smsHash: String, smsCode: String, name: String, publicKey: Array[Byte], deviceHash: Array[Byte], deviceTitle: String, appId: Int, appKey: String, isSilent: Boolean) extends RpcRequest {
+    case class RequestSignUp(phoneNumber: Long, smsHash: String, smsCode: String, name: String, publicKey: Array[Byte], deviceHash: Array[Byte], deviceTitle: String, appId: Int, appKey: String, isSilent: Boolean) extends AuthRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt64(1, phoneNumber)
         out.writeString(2, smsHash)
@@ -503,23 +504,23 @@ package im.actor.api {
         })
       }
     }
-    trait RequestGetAuthSessions extends RpcRequest
+    trait RequestGetAuthSessions extends AuthRpcRequest
     case object RequestGetAuthSessions extends RequestGetAuthSessions {
       val header = 80
       val Response = Refs.ResponseGetAuthSessions
       def parseFrom(in: com.google.protobuf.CodedInputStream): Either[Unit, RequestGetAuthSessions] = {
-        def doParse: Unit = {
+        def doParse(): Unit = {
           in.readTag() match {
             case 0 => {
               ()
             }
-            case default => if (in.skipField(default) == true) doParse
+            case default => if (in.skipField(default) == true) doParse()
             else {
               ()
             }
           }
         }
-        doParse
+        doParse()
         Right(RequestGetAuthSessions)
       }
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
@@ -599,7 +600,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestTerminateSession(id: Int) extends RpcRequest {
+    case class RequestTerminateSession(id: Int) extends AuthRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt32(1, id)
       }
@@ -643,23 +644,23 @@ package im.actor.api {
         })
       }
     }
-    trait RequestTerminateAllSessions extends RpcRequest
+    trait RequestTerminateAllSessions extends AuthRpcRequest
     case object RequestTerminateAllSessions extends RequestTerminateAllSessions {
       val header = 83
       val Response = Refs.ResponseVoid
       def parseFrom(in: com.google.protobuf.CodedInputStream): Either[Unit, RequestTerminateAllSessions] = {
-        def doParse: Unit = {
+        def doParse(): Unit = {
           in.readTag() match {
             case 0 => {
               ()
             }
-            case default => if (in.skipField(default) == true) doParse
+            case default => if (in.skipField(default) == true) doParse()
             else {
               ()
             }
           }
         }
-        doParse
+        doParse()
         Right(RequestTerminateAllSessions)
       }
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
@@ -676,23 +677,23 @@ package im.actor.api {
         res
       }
     }
-    trait RequestSignOut extends RpcRequest
+    trait RequestSignOut extends AuthRpcRequest
     case object RequestSignOut extends RequestSignOut {
       val header = 84
       val Response = Refs.ResponseVoid
       def parseFrom(in: com.google.protobuf.CodedInputStream): Either[Unit, RequestSignOut] = {
-        def doParse: Unit = {
+        def doParse(): Unit = {
           in.readTag() match {
             case 0 => {
               ()
             }
-            case default => if (in.skipField(default) == true) doParse
+            case default => if (in.skipField(default) == true) doParse()
             else {
               ()
             }
           }
         }
-        doParse
+        doParse()
         Right(RequestSignOut)
       }
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
@@ -711,6 +712,7 @@ package im.actor.api {
     }
   }
   package users {
+    trait UsersRpcRequest extends RpcRequest
     trait Sex extends Enumeration
     object Sex extends Sex {
       type Sex = Value
@@ -1003,7 +1005,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestEditUserLocalName(uid: Int, accessHash: Long, name: String) extends RpcRequest {
+    case class RequestEditUserLocalName(uid: Int, accessHash: Long, name: String) extends UsersRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt32(1, uid)
         out.writeInt64(2, accessHash)
@@ -1752,7 +1754,8 @@ package im.actor.api {
     }
   }
   package profile {
-    case class RequestEditName(name: String) extends RpcRequest {
+    trait ProfileRpcRequest extends RpcRequest
+    case class RequestEditName(name: String) extends ProfileRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeString(1, name)
       }
@@ -1796,7 +1799,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestEditAvatar(fileLocation: Refs.FileLocation) extends RpcRequest {
+    case class RequestEditAvatar(fileLocation: Refs.FileLocation) extends ProfileRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(fileLocation.getSerializedSize)
@@ -1918,23 +1921,23 @@ package im.actor.api {
         })
       }
     }
-    trait RequestRemoveAvatar extends RpcRequest
+    trait RequestRemoveAvatar extends ProfileRpcRequest
     case object RequestRemoveAvatar extends RequestRemoveAvatar {
       val header = 91
       val Response = Refs.ResponseSeq
       def parseFrom(in: com.google.protobuf.CodedInputStream): Either[Unit, RequestRemoveAvatar] = {
-        def doParse: Unit = {
+        def doParse(): Unit = {
           in.readTag() match {
             case 0 => {
               ()
             }
-            case default => if (in.skipField(default) == true) doParse
+            case default => if (in.skipField(default) == true) doParse()
             else {
               ()
             }
           }
         }
-        doParse
+        doParse()
         Right(RequestRemoveAvatar)
       }
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
@@ -1951,7 +1954,7 @@ package im.actor.api {
         res
       }
     }
-    case class RequestSendEmailCode(email: String, description: Option[String]) extends RpcRequest {
+    case class RequestSendEmailCode(email: String, description: Option[String]) extends ProfileRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeString(1, email)
         description foreach { x =>
@@ -2005,7 +2008,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestDetachEmail(email: Int, accessHash: Long) extends RpcRequest {
+    case class RequestDetachEmail(email: Int, accessHash: Long) extends ProfileRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt32(1, email)
         out.writeInt64(2, accessHash)
@@ -2055,7 +2058,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestChangePhoneTitle(phoneId: Int, title: String) extends RpcRequest {
+    case class RequestChangePhoneTitle(phoneId: Int, title: String) extends ProfileRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt32(1, phoneId)
         out.writeString(2, title)
@@ -2105,7 +2108,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestChangeEmailTitle(emailId: Int, title: String) extends RpcRequest {
+    case class RequestChangeEmailTitle(emailId: Int, title: String) extends ProfileRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt32(1, emailId)
         out.writeString(2, title)
@@ -2157,6 +2160,7 @@ package im.actor.api {
     }
   }
   package contacts {
+    trait ContactsRpcRequest extends RpcRequest
     case class PhoneToImport(phoneNumber: Long, name: Option[String]) {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt64(1, phoneNumber)
@@ -2261,7 +2265,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestImportContacts(phones: Vector[Refs.PhoneToImport], emails: Vector[Refs.EmailToImport]) extends RpcRequest {
+    case class RequestImportContacts(phones: Vector[Refs.PhoneToImport], emails: Vector[Refs.EmailToImport]) extends ContactsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         phones foreach { x =>
           out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
@@ -2425,7 +2429,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestGetContacts(contactsHash: String) extends RpcRequest {
+    case class RequestGetContacts(contactsHash: String) extends ContactsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeString(1, contactsHash)
       }
@@ -2538,7 +2542,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestRemoveContact(uid: Int, accessHash: Long) extends RpcRequest {
+    case class RequestRemoveContact(uid: Int, accessHash: Long) extends ContactsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt32(1, uid)
         out.writeInt64(2, accessHash)
@@ -2588,7 +2592,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestAddContact(uid: Int, accessHash: Long) extends RpcRequest {
+    case class RequestAddContact(uid: Int, accessHash: Long) extends ContactsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt32(1, uid)
         out.writeInt64(2, accessHash)
@@ -2638,7 +2642,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSearchContacts(request: String) extends RpcRequest {
+    case class RequestSearchContacts(request: String) extends ContactsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeString(1, request)
       }
@@ -2960,6 +2964,7 @@ package im.actor.api {
     }
   }
   package messaging {
+    trait MessagingRpcRequest extends RpcRequest
     case class MessageContent(`type`: Int, content: Refs.Message) {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt32(1, `type`)
@@ -3244,18 +3249,18 @@ package im.actor.api {
     trait ServiceExUserLeft extends ServiceExtension
     case object ServiceExUserLeft extends ServiceExUserLeft {
       def parseFrom(in: com.google.protobuf.CodedInputStream): Either[Unit, ServiceExUserLeft] = {
-        def doParse: Unit = {
+        def doParse(): Unit = {
           in.readTag() match {
             case 0 => {
               ()
             }
-            case default => if (in.skipField(default) == true) doParse
+            case default => if (in.skipField(default) == true) doParse()
             else {
               ()
             }
           }
         }
-        doParse
+        doParse()
         Right(ServiceExUserLeft)
       }
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
@@ -3275,18 +3280,18 @@ package im.actor.api {
     trait ServiceExGroupCreated extends ServiceExtension
     case object ServiceExGroupCreated extends ServiceExGroupCreated {
       def parseFrom(in: com.google.protobuf.CodedInputStream): Either[Unit, ServiceExGroupCreated] = {
-        def doParse: Unit = {
+        def doParse(): Unit = {
           in.readTag() match {
             case 0 => {
               ()
             }
-            case default => if (in.skipField(default) == true) doParse
+            case default => if (in.skipField(default) == true) doParse()
             else {
               ()
             }
           }
         }
-        doParse
+        doParse()
         Right(ServiceExGroupCreated)
       }
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
@@ -3857,7 +3862,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSendEncryptedMessage(peer: Refs.OutPeer, rid: Long, encryptedMessage: Array[Byte], keys: Vector[Refs.EncryptedAesKey], ownKeys: Vector[Refs.EncryptedAesKey]) extends RpcRequest {
+    case class RequestSendEncryptedMessage(peer: Refs.OutPeer, rid: Long, encryptedMessage: Array[Byte], keys: Vector[Refs.EncryptedAesKey], ownKeys: Vector[Refs.EncryptedAesKey]) extends MessagingRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(peer.getSerializedSize)
@@ -3974,7 +3979,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSendMessage(peer: Refs.OutPeer, rid: Long, message: Refs.MessageContent) extends RpcRequest {
+    case class RequestSendMessage(peer: Refs.OutPeer, rid: Long, message: Refs.MessageContent) extends MessagingRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(peer.getSerializedSize)
@@ -4053,7 +4058,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestEncryptedReceived(peer: Refs.OutPeer, rid: Long) extends RpcRequest {
+    case class RequestEncryptedReceived(peer: Refs.OutPeer, rid: Long) extends MessagingRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(peer.getSerializedSize)
@@ -4115,7 +4120,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestEncryptedRead(peer: Refs.OutPeer, rid: Long) extends RpcRequest {
+    case class RequestEncryptedRead(peer: Refs.OutPeer, rid: Long) extends MessagingRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(peer.getSerializedSize)
@@ -4177,7 +4182,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestMessageReceived(peer: Refs.OutPeer, date: Long) extends RpcRequest {
+    case class RequestMessageReceived(peer: Refs.OutPeer, date: Long) extends MessagingRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(peer.getSerializedSize)
@@ -4239,7 +4244,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestMessageRead(peer: Refs.OutPeer, date: Long) extends RpcRequest {
+    case class RequestMessageRead(peer: Refs.OutPeer, date: Long) extends MessagingRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(peer.getSerializedSize)
@@ -4301,7 +4306,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestDeleteMessage(peer: Refs.OutPeer, rids: Vector[Long]) extends RpcRequest {
+    case class RequestDeleteMessage(peer: Refs.OutPeer, rids: Vector[Long]) extends MessagingRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(peer.getSerializedSize)
@@ -4374,7 +4379,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestClearChat(peer: Refs.OutPeer) extends RpcRequest {
+    case class RequestClearChat(peer: Refs.OutPeer) extends MessagingRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(peer.getSerializedSize)
@@ -4430,7 +4435,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestDeleteChat(peer: Refs.OutPeer) extends RpcRequest {
+    case class RequestDeleteChat(peer: Refs.OutPeer) extends MessagingRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(peer.getSerializedSize)
@@ -5337,6 +5342,7 @@ package im.actor.api {
     }
   }
   package groups {
+    trait GroupsRpcRequest extends RpcRequest
     case class Group(id: Int, accessHash: Long, title: String, avatar: Option[Refs.Avatar], isMember: Boolean, adminUid: Int, members: Vector[Refs.Member], createDate: Long) {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt32(1, id)
@@ -5509,7 +5515,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestCreateGroup(rid: Long, title: String, users: Vector[Refs.UserOutPeer]) extends RpcRequest {
+    case class RequestCreateGroup(rid: Long, title: String, users: Vector[Refs.UserOutPeer]) extends GroupsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt64(1, rid)
         out.writeString(2, title)
@@ -5672,7 +5678,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestEditGroupTitle(groupPeer: Refs.GroupOutPeer, title: String, rid: Long) extends RpcRequest {
+    case class RequestEditGroupTitle(groupPeer: Refs.GroupOutPeer, title: String, rid: Long) extends GroupsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(groupPeer.getSerializedSize)
@@ -5739,7 +5745,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestEditGroupAvatar(groupPeer: Refs.GroupOutPeer, fileLocation: Refs.FileLocation, rid: Long) extends RpcRequest {
+    case class RequestEditGroupAvatar(groupPeer: Refs.GroupOutPeer, fileLocation: Refs.FileLocation, rid: Long) extends GroupsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(groupPeer.getSerializedSize)
@@ -5889,7 +5895,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestRemoveGroupAvatar(groupPeer: Refs.GroupOutPeer, rid: Long) extends RpcRequest {
+    case class RequestRemoveGroupAvatar(groupPeer: Refs.GroupOutPeer, rid: Long) extends GroupsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(groupPeer.getSerializedSize)
@@ -5951,7 +5957,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestInviteUser(groupPeer: Refs.GroupOutPeer, user: Refs.UserOutPeer, rid: Long) extends RpcRequest {
+    case class RequestInviteUser(groupPeer: Refs.GroupOutPeer, user: Refs.UserOutPeer, rid: Long) extends GroupsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(groupPeer.getSerializedSize)
@@ -6030,7 +6036,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestLeaveGroup(groupPeer: Refs.GroupOutPeer, rid: Long) extends RpcRequest {
+    case class RequestLeaveGroup(groupPeer: Refs.GroupOutPeer, rid: Long) extends GroupsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(groupPeer.getSerializedSize)
@@ -6092,7 +6098,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestKickUser(groupPeer: Refs.GroupOutPeer, user: Refs.UserOutPeer, rid: Long) extends RpcRequest {
+    case class RequestKickUser(groupPeer: Refs.GroupOutPeer, user: Refs.UserOutPeer, rid: Long) extends GroupsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(groupPeer.getSerializedSize)
@@ -6637,6 +6643,7 @@ package im.actor.api {
     }
   }
   package conversations {
+    trait ConversationsRpcRequest extends RpcRequest
     trait MessageState extends Enumeration
     object MessageState extends MessageState {
       type MessageState = Value
@@ -6725,7 +6732,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestLoadHistory(peer: Refs.OutPeer, startDate: Long, limit: Int) extends RpcRequest {
+    case class RequestLoadHistory(peer: Refs.OutPeer, startDate: Long, limit: Int) extends ConversationsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(peer.getSerializedSize)
@@ -6989,7 +6996,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestLoadDialogs(startDate: Long, limit: Int) extends RpcRequest {
+    case class RequestLoadDialogs(startDate: Long, limit: Int) extends ConversationsRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt64(1, startDate)
         out.writeInt32(2, limit)
@@ -7155,6 +7162,7 @@ package im.actor.api {
     }
   }
   package encryption {
+    trait EncryptionRpcRequest extends RpcRequest
     case class UserKey(uid: Int, keyHash: Long) {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt32(1, uid)
@@ -7421,7 +7429,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestGetPublicKeys(keys: Vector[Refs.PublicKeyRequest]) extends RpcRequest {
+    case class RequestGetPublicKeys(keys: Vector[Refs.PublicKeyRequest]) extends EncryptionRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         keys foreach { x =>
           out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
@@ -7550,7 +7558,8 @@ package im.actor.api {
     }
   }
   package weak {
-    case class RequestTyping(peer: Refs.OutPeer, typingType: Int) extends RpcRequest {
+    trait WeakRpcRequest extends RpcRequest
+    case class RequestTyping(peer: Refs.OutPeer, typingType: Int) extends WeakRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(peer.getSerializedSize)
@@ -7612,7 +7621,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSetOnline(isOnline: Boolean, timeout: Long) extends RpcRequest {
+    case class RequestSetOnline(isOnline: Boolean, timeout: Long) extends WeakRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeBool(1, isOnline)
         out.writeInt64(2, timeout)
@@ -7914,6 +7923,7 @@ package im.actor.api {
     }
   }
   package files {
+    trait FilesRpcRequest extends RpcRequest
     case class FileLocation(fileId: Long, accessHash: Long) {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt64(1, fileId)
@@ -8201,7 +8211,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestGetFile(fileLocation: Refs.FileLocation, offset: Int, limit: Int) extends RpcRequest {
+    case class RequestGetFile(fileLocation: Refs.FileLocation, offset: Int, limit: Int) extends FilesRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(fileLocation.getSerializedSize)
@@ -8353,23 +8363,23 @@ package im.actor.api {
         })
       }
     }
-    trait RequestStartUpload extends RpcRequest
+    trait RequestStartUpload extends FilesRpcRequest
     case object RequestStartUpload extends RequestStartUpload {
       val header = 18
       val Response = Refs.ResponseStartUpload
       def parseFrom(in: com.google.protobuf.CodedInputStream): Either[Unit, RequestStartUpload] = {
-        def doParse: Unit = {
+        def doParse(): Unit = {
           in.readTag() match {
             case 0 => {
               ()
             }
-            case default => if (in.skipField(default) == true) doParse
+            case default => if (in.skipField(default) == true) doParse()
             else {
               ()
             }
           }
         }
-        doParse
+        doParse()
         Right(RequestStartUpload)
       }
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
@@ -8441,7 +8451,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestUploadPart(config: Refs.UploadConfig, blockIndex: Int, payload: Array[Byte]) extends RpcRequest {
+    case class RequestUploadPart(config: Refs.UploadConfig, blockIndex: Int, payload: Array[Byte]) extends FilesRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(config.getSerializedSize)
@@ -8508,7 +8518,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestCompleteUpload(config: Refs.UploadConfig, blocksCount: Int, crc32: Long) extends RpcRequest {
+    case class RequestCompleteUpload(config: Refs.UploadConfig, blocksCount: Int, crc32: Long) extends FilesRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
         out.writeRawVarint32(config.getSerializedSize)
@@ -8632,7 +8642,8 @@ package im.actor.api {
     }
   }
   package push {
-    case class RequestRegisterGooglePush(projectId: Long, token: String) extends RpcRequest {
+    trait PushRpcRequest extends RpcRequest
+    case class RequestRegisterGooglePush(projectId: Long, token: String) extends PushRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt64(1, projectId)
         out.writeString(2, token)
@@ -8682,7 +8693,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestRegisterApplePush(apnsKey: Int, token: String) extends RpcRequest {
+    case class RequestRegisterApplePush(apnsKey: Int, token: String) extends PushRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt32(1, apnsKey)
         out.writeString(2, token)
@@ -8732,23 +8743,23 @@ package im.actor.api {
         })
       }
     }
-    trait RequestUnregisterPush extends RpcRequest
+    trait RequestUnregisterPush extends PushRpcRequest
     case object RequestUnregisterPush extends RequestUnregisterPush {
       val header = 52
       val Response = Refs.ResponseVoid
       def parseFrom(in: com.google.protobuf.CodedInputStream): Either[Unit, RequestUnregisterPush] = {
-        def doParse: Unit = {
+        def doParse(): Unit = {
           in.readTag() match {
             case 0 => {
               ()
             }
-            case default => if (in.skipField(default) == true) doParse
+            case default => if (in.skipField(default) == true) doParse()
             else {
               ()
             }
           }
         }
-        doParse
+        doParse()
         Right(RequestUnregisterPush)
       }
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
@@ -8767,6 +8778,7 @@ package im.actor.api {
     }
   }
   package peers {
+    trait PeersRpcRequest extends RpcRequest
     trait PeerType extends Enumeration
     object PeerType extends PeerType {
       type PeerType = Value
@@ -8977,27 +8989,28 @@ package im.actor.api {
     }
   }
   package sequence {
+    trait SequenceRpcRequest extends RpcRequest
     case class SeqUpdate(seq: Int, state: Array[Byte], updateHeader: Int, update: Array[Byte]) extends UpdateBox
     case class FatSeqUpdate(seq: Int, state: Array[Byte], updateHeader: Int, update: Array[Byte], users: Vector[Refs.User], groups: Vector[Refs.Group], phones: Vector[Refs.Phone], emails: Vector[Refs.Email]) extends UpdateBox
     case class WeakUpdate(date: Long, updateHeader: Int, update: Array[Byte]) extends UpdateBox
     case object SeqUpdateTooLong extends UpdateBox
-    trait RequestGetState extends RpcRequest
+    trait RequestGetState extends SequenceRpcRequest
     case object RequestGetState extends RequestGetState {
       val header = 9
       val Response = Refs.ResponseSeq
       def parseFrom(in: com.google.protobuf.CodedInputStream): Either[Unit, RequestGetState] = {
-        def doParse: Unit = {
+        def doParse(): Unit = {
           in.readTag() match {
             case 0 => {
               ()
             }
-            case default => if (in.skipField(default) == true) doParse
+            case default => if (in.skipField(default) == true) doParse()
             else {
               ()
             }
           }
         }
-        doParse
+        doParse()
         Right(RequestGetState)
       }
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
@@ -9062,7 +9075,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestGetDifference(seq: Int, state: Array[Byte]) extends RpcRequest {
+    case class RequestGetDifference(seq: Int, state: Array[Byte]) extends SequenceRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         out.writeInt32(1, seq)
         out.writeByteArray(2, state)
@@ -9291,7 +9304,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSubscribeToOnline(users: Vector[Refs.UserOutPeer]) extends RpcRequest {
+    case class RequestSubscribeToOnline(users: Vector[Refs.UserOutPeer]) extends SequenceRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         users foreach { x =>
           out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
@@ -9355,7 +9368,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSubscribeFromOnline(users: Vector[Refs.UserOutPeer]) extends RpcRequest {
+    case class RequestSubscribeFromOnline(users: Vector[Refs.UserOutPeer]) extends SequenceRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         users foreach { x =>
           out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
@@ -9419,7 +9432,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSubscribeToGroupOnline(groups: Vector[Refs.GroupOutPeer]) extends RpcRequest {
+    case class RequestSubscribeToGroupOnline(groups: Vector[Refs.GroupOutPeer]) extends SequenceRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         groups foreach { x =>
           out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
@@ -9483,7 +9496,7 @@ package im.actor.api {
         })
       }
     }
-    case class RequestSubscribeFromGroupOnline(groups: Vector[Refs.GroupOutPeer]) extends RpcRequest {
+    case class RequestSubscribeFromGroupOnline(groups: Vector[Refs.GroupOutPeer]) extends SequenceRpcRequest {
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
         groups foreach { x =>
           out.writeTag(1, com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED)
@@ -9549,22 +9562,23 @@ package im.actor.api {
     }
   }
   package misc {
+    trait MiscRpcRequest extends RpcRequest
     trait ResponseVoid extends RpcResponse
     case object ResponseVoid extends ResponseVoid {
       val header = 50
       def parseFrom(in: com.google.protobuf.CodedInputStream): Either[Unit, ResponseVoid] = {
-        def doParse: Unit = {
+        def doParse(): Unit = {
           in.readTag() match {
             case 0 => {
               ()
             }
-            case default => if (in.skipField(default) == true) doParse
+            case default => if (in.skipField(default) == true) doParse()
             else {
               ()
             }
           }
         }
-        doParse
+        doParse()
         Right(ResponseVoid)
       }
       def writeTo(out: com.google.protobuf.CodedOutputStream) {
