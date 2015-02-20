@@ -1,4 +1,6 @@
 package im.actor.api {
+  import scalaz._
+  import scalaz.std.either._
   package auth {
     trait AuthRpcRequest extends RpcRequest
     case class RequestSendAuthCode(phoneNumber: Long, appId: Int, apiKey: String) extends AuthRpcRequest {
@@ -709,6 +711,28 @@ package im.actor.api {
         out.checkNoSpaceLeft()
         res
       }
+    }
+    trait AuthApiService extends ApiService[AuthRpcRequest] {
+      def handleRequest(request: AuthRpcRequest): HandleResult = {
+        request match {
+          case (r: RequestSendAuthCode) => handleSendAuthCode(r.phoneNumber, r.appId, r.apiKey)
+          case (r: RequestSendAuthCall) => handleSendAuthCall(r.phoneNumber, r.smsHash, r.appId, r.apiKey)
+          case (r: RequestSignIn) => handleSignIn(r.phoneNumber, r.smsHash, r.smsCode, r.publicKey, r.deviceHash, r.deviceTitle, r.appId, r.appKey)
+          case (r: RequestSignUp) => handleSignUp(r.phoneNumber, r.smsHash, r.smsCode, r.name, r.publicKey, r.deviceHash, r.deviceTitle, r.appId, r.appKey, r.isSilent)
+          case (r: RequestGetAuthSessions) => handleGetAuthSessions()
+          case (r: RequestTerminateSession) => handleTerminateSession(r.id)
+          case (r: RequestTerminateAllSessions) => handleTerminateAllSessions()
+          case (r: RequestSignOut) => handleSignOut()
+        }
+      }
+      def handleSendAuthCode(phoneNumber: Long, appId: Int, apiKey: String): HandleResult
+      def handleSendAuthCall(phoneNumber: Long, smsHash: String, appId: Int, apiKey: String): HandleResult
+      def handleSignIn(phoneNumber: Long, smsHash: String, smsCode: String, publicKey: Array[Byte], deviceHash: Array[Byte], deviceTitle: String, appId: Int, appKey: String): HandleResult
+      def handleSignUp(phoneNumber: Long, smsHash: String, smsCode: String, name: String, publicKey: Array[Byte], deviceHash: Array[Byte], deviceTitle: String, appId: Int, appKey: String, isSilent: Boolean): HandleResult
+      def handleGetAuthSessions(): HandleResult
+      def handleTerminateSession(id: Int): HandleResult
+      def handleTerminateAllSessions(): HandleResult
+      def handleSignOut(): HandleResult
     }
   }
   package users {
@@ -1752,6 +1776,14 @@ package im.actor.api {
         })
       }
     }
+    trait UsersApiService extends ApiService[UsersRpcRequest] {
+      def handleRequest(request: UsersRpcRequest): HandleResult = {
+        request match {
+          case (r: RequestEditUserLocalName) => handleEditUserLocalName(r.uid, r.accessHash, r.name)
+        }
+      }
+      def handleEditUserLocalName(uid: Int, accessHash: Long, name: String): HandleResult
+    }
   }
   package profile {
     trait ProfileRpcRequest extends RpcRequest
@@ -2157,6 +2189,26 @@ package im.actor.api {
           Left(partialMessage)
         })
       }
+    }
+    trait ProfileApiService extends ApiService[ProfileRpcRequest] {
+      def handleRequest(request: ProfileRpcRequest): HandleResult = {
+        request match {
+          case (r: RequestEditName) => handleEditName(r.name)
+          case (r: RequestEditAvatar) => handleEditAvatar(r.fileLocation)
+          case (r: RequestRemoveAvatar) => handleRemoveAvatar()
+          case (r: RequestSendEmailCode) => handleSendEmailCode(r.email, r.description)
+          case (r: RequestDetachEmail) => handleDetachEmail(r.email, r.accessHash)
+          case (r: RequestChangePhoneTitle) => handleChangePhoneTitle(r.phoneId, r.title)
+          case (r: RequestChangeEmailTitle) => handleChangeEmailTitle(r.emailId, r.title)
+        }
+      }
+      def handleEditName(name: String): HandleResult
+      def handleEditAvatar(fileLocation: Refs.FileLocation): HandleResult
+      def handleRemoveAvatar(): HandleResult
+      def handleSendEmailCode(email: String, description: Option[String]): HandleResult
+      def handleDetachEmail(email: Int, accessHash: Long): HandleResult
+      def handleChangePhoneTitle(phoneId: Int, title: String): HandleResult
+      def handleChangeEmailTitle(emailId: Int, title: String): HandleResult
     }
   }
   package contacts {
@@ -2961,6 +3013,22 @@ package im.actor.api {
           Left(partialMessage)
         })
       }
+    }
+    trait ContactsApiService extends ApiService[ContactsRpcRequest] {
+      def handleRequest(request: ContactsRpcRequest): HandleResult = {
+        request match {
+          case (r: RequestImportContacts) => handleImportContacts(r.phones, r.emails)
+          case (r: RequestGetContacts) => handleGetContacts(r.contactsHash)
+          case (r: RequestRemoveContact) => handleRemoveContact(r.uid, r.accessHash)
+          case (r: RequestAddContact) => handleAddContact(r.uid, r.accessHash)
+          case (r: RequestSearchContacts) => handleSearchContacts(r.request)
+        }
+      }
+      def handleImportContacts(phones: Vector[Refs.PhoneToImport], emails: Vector[Refs.EmailToImport]): HandleResult
+      def handleGetContacts(contactsHash: String): HandleResult
+      def handleRemoveContact(uid: Int, accessHash: Long): HandleResult
+      def handleAddContact(uid: Int, accessHash: Long): HandleResult
+      def handleSearchContacts(request: String): HandleResult
     }
   }
   package messaging {
@@ -5340,6 +5408,30 @@ package im.actor.api {
         }
       }
     }
+    trait MessagingApiService extends ApiService[MessagingRpcRequest] {
+      def handleRequest(request: MessagingRpcRequest): HandleResult = {
+        request match {
+          case (r: RequestSendEncryptedMessage) => handleSendEncryptedMessage(r.peer, r.rid, r.encryptedMessage, r.keys, r.ownKeys)
+          case (r: RequestSendMessage) => handleSendMessage(r.peer, r.rid, r.message)
+          case (r: RequestEncryptedReceived) => handleEncryptedReceived(r.peer, r.rid)
+          case (r: RequestEncryptedRead) => handleEncryptedRead(r.peer, r.rid)
+          case (r: RequestMessageReceived) => handleMessageReceived(r.peer, r.date)
+          case (r: RequestMessageRead) => handleMessageRead(r.peer, r.date)
+          case (r: RequestDeleteMessage) => handleDeleteMessage(r.peer, r.rids)
+          case (r: RequestClearChat) => handleClearChat(r.peer)
+          case (r: RequestDeleteChat) => handleDeleteChat(r.peer)
+        }
+      }
+      def handleSendEncryptedMessage(peer: Refs.OutPeer, rid: Long, encryptedMessage: Array[Byte], keys: Vector[Refs.EncryptedAesKey], ownKeys: Vector[Refs.EncryptedAesKey]): HandleResult
+      def handleSendMessage(peer: Refs.OutPeer, rid: Long, message: Refs.MessageContent): HandleResult
+      def handleEncryptedReceived(peer: Refs.OutPeer, rid: Long): HandleResult
+      def handleEncryptedRead(peer: Refs.OutPeer, rid: Long): HandleResult
+      def handleMessageReceived(peer: Refs.OutPeer, date: Long): HandleResult
+      def handleMessageRead(peer: Refs.OutPeer, date: Long): HandleResult
+      def handleDeleteMessage(peer: Refs.OutPeer, rids: Vector[Long]): HandleResult
+      def handleClearChat(peer: Refs.OutPeer): HandleResult
+      def handleDeleteChat(peer: Refs.OutPeer): HandleResult
+    }
   }
   package groups {
     trait GroupsRpcRequest extends RpcRequest
@@ -6641,6 +6733,26 @@ package im.actor.api {
         })
       }
     }
+    trait GroupsApiService extends ApiService[GroupsRpcRequest] {
+      def handleRequest(request: GroupsRpcRequest): HandleResult = {
+        request match {
+          case (r: RequestCreateGroup) => handleCreateGroup(r.rid, r.title, r.users)
+          case (r: RequestEditGroupTitle) => handleEditGroupTitle(r.groupPeer, r.rid, r.title)
+          case (r: RequestEditGroupAvatar) => handleEditGroupAvatar(r.groupPeer, r.rid, r.fileLocation)
+          case (r: RequestRemoveGroupAvatar) => handleRemoveGroupAvatar(r.groupPeer, r.rid)
+          case (r: RequestInviteUser) => handleInviteUser(r.groupPeer, r.rid, r.user)
+          case (r: RequestLeaveGroup) => handleLeaveGroup(r.groupPeer, r.rid)
+          case (r: RequestKickUser) => handleKickUser(r.groupPeer, r.rid, r.user)
+        }
+      }
+      def handleCreateGroup(rid: Long, title: String, users: Vector[Refs.UserOutPeer]): HandleResult
+      def handleEditGroupTitle(groupPeer: Refs.GroupOutPeer, rid: Long, title: String): HandleResult
+      def handleEditGroupAvatar(groupPeer: Refs.GroupOutPeer, rid: Long, fileLocation: Refs.FileLocation): HandleResult
+      def handleRemoveGroupAvatar(groupPeer: Refs.GroupOutPeer, rid: Long): HandleResult
+      def handleInviteUser(groupPeer: Refs.GroupOutPeer, rid: Long, user: Refs.UserOutPeer): HandleResult
+      def handleLeaveGroup(groupPeer: Refs.GroupOutPeer, rid: Long): HandleResult
+      def handleKickUser(groupPeer: Refs.GroupOutPeer, rid: Long, user: Refs.UserOutPeer): HandleResult
+    }
   }
   package conversations {
     trait ConversationsRpcRequest extends RpcRequest
@@ -7160,6 +7272,16 @@ package im.actor.api {
         })
       }
     }
+    trait ConversationsApiService extends ApiService[ConversationsRpcRequest] {
+      def handleRequest(request: ConversationsRpcRequest): HandleResult = {
+        request match {
+          case (r: RequestLoadHistory) => handleLoadHistory(r.peer, r.startDate, r.limit)
+          case (r: RequestLoadDialogs) => handleLoadDialogs(r.startDate, r.limit)
+        }
+      }
+      def handleLoadHistory(peer: Refs.OutPeer, startDate: Long, limit: Int): HandleResult
+      def handleLoadDialogs(startDate: Long, limit: Int): HandleResult
+    }
   }
   package encryption {
     trait EncryptionRpcRequest extends RpcRequest
@@ -7556,6 +7678,14 @@ package im.actor.api {
         })
       }
     }
+    trait EncryptionApiService extends ApiService[EncryptionRpcRequest] {
+      def handleRequest(request: EncryptionRpcRequest): HandleResult = {
+        request match {
+          case (r: RequestGetPublicKeys) => handleGetPublicKeys(r.keys)
+        }
+      }
+      def handleGetPublicKeys(keys: Vector[Refs.PublicKeyRequest]): HandleResult
+    }
   }
   package weak {
     trait WeakRpcRequest extends RpcRequest
@@ -7920,6 +8050,16 @@ package im.actor.api {
           Left(partialMessage)
         })
       }
+    }
+    trait WeakApiService extends ApiService[WeakRpcRequest] {
+      def handleRequest(request: WeakRpcRequest): HandleResult = {
+        request match {
+          case (r: RequestTyping) => handleTyping(r.peer, r.typingType)
+          case (r: RequestSetOnline) => handleSetOnline(r.isOnline, r.timeout)
+        }
+      }
+      def handleTyping(peer: Refs.OutPeer, typingType: Int): HandleResult
+      def handleSetOnline(isOnline: Boolean, timeout: Long): HandleResult
     }
   }
   package files {
@@ -8640,6 +8780,20 @@ package im.actor.api {
         })
       }
     }
+    trait FilesApiService extends ApiService[FilesRpcRequest] {
+      def handleRequest(request: FilesRpcRequest): HandleResult = {
+        request match {
+          case (r: RequestGetFile) => handleGetFile(r.fileLocation, r.offset, r.limit)
+          case (r: RequestStartUpload) => handleStartUpload()
+          case (r: RequestUploadPart) => handleUploadPart(r.config, r.blockIndex, r.payload)
+          case (r: RequestCompleteUpload) => handleCompleteUpload(r.config, r.blocksCount, r.crc32)
+        }
+      }
+      def handleGetFile(fileLocation: Refs.FileLocation, offset: Int, limit: Int): HandleResult
+      def handleStartUpload(): HandleResult
+      def handleUploadPart(config: Refs.UploadConfig, blockIndex: Int, payload: Array[Byte]): HandleResult
+      def handleCompleteUpload(config: Refs.UploadConfig, blocksCount: Int, crc32: Long): HandleResult
+    }
   }
   package push {
     trait PushRpcRequest extends RpcRequest
@@ -8775,6 +8929,18 @@ package im.actor.api {
         out.checkNoSpaceLeft()
         res
       }
+    }
+    trait PushApiService extends ApiService[PushRpcRequest] {
+      def handleRequest(request: PushRpcRequest): HandleResult = {
+        request match {
+          case (r: RequestRegisterGooglePush) => handleRegisterGooglePush(r.projectId, r.token)
+          case (r: RequestRegisterApplePush) => handleRegisterApplePush(r.apnsKey, r.token)
+          case (r: RequestUnregisterPush) => handleUnregisterPush()
+        }
+      }
+      def handleRegisterGooglePush(projectId: Long, token: String): HandleResult
+      def handleRegisterApplePush(apnsKey: Int, token: String): HandleResult
+      def handleUnregisterPush(): HandleResult
     }
   }
   package peers {
@@ -9560,6 +9726,24 @@ package im.actor.api {
         })
       }
     }
+    trait SequenceApiService extends ApiService[SequenceRpcRequest] {
+      def handleRequest(request: SequenceRpcRequest): HandleResult = {
+        request match {
+          case (r: RequestGetState) => handleGetState()
+          case (r: RequestGetDifference) => handleGetDifference(r.seq, r.state)
+          case (r: RequestSubscribeToOnline) => handleSubscribeToOnline(r.users)
+          case (r: RequestSubscribeFromOnline) => handleSubscribeFromOnline(r.users)
+          case (r: RequestSubscribeToGroupOnline) => handleSubscribeToGroupOnline(r.groups)
+          case (r: RequestSubscribeFromGroupOnline) => handleSubscribeFromGroupOnline(r.groups)
+        }
+      }
+      def handleGetState(): HandleResult
+      def handleGetDifference(seq: Int, state: Array[Byte]): HandleResult
+      def handleSubscribeToOnline(users: Vector[Refs.UserOutPeer]): HandleResult
+      def handleSubscribeFromOnline(users: Vector[Refs.UserOutPeer]): HandleResult
+      def handleSubscribeToGroupOnline(groups: Vector[Refs.GroupOutPeer]): HandleResult
+      def handleSubscribeFromGroupOnline(groups: Vector[Refs.GroupOutPeer]): HandleResult
+    }
   }
   package misc {
     trait MiscRpcRequest extends RpcRequest
@@ -10124,6 +10308,13 @@ package im.actor.api {
   }
   class ParseException(partialMessage: Any) extends Exception
   trait UpdateBox
+  trait ErrorData
+  case class RpcOk[T <: RpcRequest](response: T)
+  case class RpcError(code: Int, tag: String, userMessage: String, canTryAgain: Boolean, data: Option[ErrorData])
+  trait ApiService[T <: RpcRequest] {
+    type HandleResult = \/[RpcError, (RpcOk[T], Vector[Update])]
+    def handleRequest(request: T): HandleResult
+  }
   trait Update
   trait RpcRequest
   trait RpcResponse

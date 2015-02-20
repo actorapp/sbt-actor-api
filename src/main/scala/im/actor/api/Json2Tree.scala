@@ -6,7 +6,7 @@ import scala.language.postfixOps
 import scala.collection.mutable
 import spray.json._, DefaultJsonProtocol._
 
-class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with SerializationTrees with DeserializationTrees {
+class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with SerializationTrees with DeserializationTrees with ApiServiceTrees {
   val jsonAst = jsonString.parseJson
   val rootObj = jsonAst.convertTo[JsObject]
 
@@ -42,15 +42,42 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
 
     val globalRefsTree = OBJECTDEF("Refs") withFlags(PRIVATEWITHIN("api")) := BLOCK(globalRefsV.flatten)
 
-    val updateBoxDef = TRAITDEF("UpdateBox").tree
-    val updateDef = TRAITDEF("Update").tree
-    val rpcRequestDef = TRAITDEF("RpcRequest").tree
-    val rpcResponseDef = TRAITDEF("RpcResponse").tree
+    val updateBoxDef = TRAITDEF("UpdateBox")
+    val updateDef = TRAITDEF("Update")
+    val rpcRequestDef = TRAITDEF("RpcRequest")
+    val rpcResponseDef = TRAITDEF("RpcResponse")
+    val errorDataDef = TRAITDEF("ErrorData")
+    val rpcOkDef = CASECLASSDEF("RpcOk") withTypeParams(
+      TYPEVAR("T") UPPER(valueCache("RpcRequest"))
+    ) withParams(PARAM("response", valueCache("T")))
+    val rpcErrorDef = CASECLASSDEF("RpcError") withParams(
+      PARAM("code", IntClass),
+      PARAM("tag", StringClass),
+      PARAM("userMessage", StringClass),
+      PARAM("canTryAgain", BooleanClass),
+      PARAM("data", optionType(valueCache("ErrorData")))
+    )
+
+    val baseTrees: Vector[Tree] = Vector(
+      globalRefsTree,
+      parseExceptionDef,
+      updateBoxDef,
+      errorDataDef,
+      rpcOkDef,
+      rpcErrorDef,
+      apiServiceTree,
+      updateDef,
+      rpcRequestDef,
+      rpcResponseDef
+    )
 
     val tree = PACKAGE("im.actor.api") := BLOCK(
-      packageTrees ++ Vector(
-        globalRefsTree, parseExceptionDef, updateBoxDef, updateDef, rpcRequestDef, rpcResponseDef
-      ))
+      Vector(
+        IMPORT("scalaz._"),
+        IMPORT("scalaz.std.either._")
+      ) ++
+        packageTrees ++ baseTrees
+    )
     prettify(treeToString(tree))
   }
 
@@ -123,7 +150,9 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       traitItemTrees(packageName, trai, allChildren.filter(_.traitExt.map(_.name) == Some(trai.name)))
     )).unzip
 
-    (globalRefs ++ traitGlobalRefsV.flatten, BLOCK(Vector(requestTraitTree) ++ trees ++ traitTreesV.flatten))
+    val serviceTrees = packageApiServiceTrees(packageName, items)
+
+    (globalRefs ++ traitGlobalRefsV.flatten, BLOCK(Vector(requestTraitTree) ++ trees ++ traitTreesV.flatten ++ serviceTrees))
   }
 
   // TODO: hex
