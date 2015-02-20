@@ -12,7 +12,7 @@ trait ApiServiceTrees extends TreeHelpers {
     ) := BLOCK(
         TYPEVAR("HandleResult") := REF("\\/") APPLYTYPE (
           "RpcError",
-          "(RpcOk[T], Vector[Update])"
+          "(RpcOk[T], Vector[(Long, Update)])"
         ),
         DEF("handleRequest", valueCache("scala.concurrent.Future[HandleResult]")) withParams (
           PARAM("authId", LongClass),
