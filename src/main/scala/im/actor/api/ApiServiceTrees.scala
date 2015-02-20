@@ -15,6 +15,8 @@ trait ApiServiceTrees extends TreeHelpers {
           "(RpcOk[T], Vector[Update])"
         ),
         DEF("handleRequest", valueCache("scala.concurrent.Future[HandleResult]")) withParams (
+          PARAM("authId", LongClass),
+          PARAM("optUserId", optionType(IntClass)),
           PARAM("request", valueCache("T"))
         )
       )
@@ -28,7 +30,10 @@ trait ApiServiceTrees extends TreeHelpers {
     } else {
       val handlers: Vector[Tree] = rpcs map {
         case RpcContent(_, name, attributes, _) =>
-          val params: Vector[ValDef] = attributes map { attr =>
+          val params: Vector[ValDef] = Vector(
+            PARAM("authId", LongClass): ValDef,
+            PARAM("optUserId", optionType(IntClass)): ValDef
+          ) ++ (attributes map { attr =>
 
             def scalaTyp(typ: Types.AttributeType): Type = typ match {
               case Types.Int32              => IntClass
@@ -45,28 +50,33 @@ trait ApiServiceTrees extends TreeHelpers {
             }
 
             PARAM(attr.name, scalaTyp(attr.typ)): ValDef
-          }
+          })
 
-          if (params.isEmpty) {
-            DEF(f"handle$name%s()", valueCache("scala.concurrent.Future[HandleResult]")).tree
-          } else {
-            (DEF(f"handle$name%s", valueCache("scala.concurrent.Future[HandleResult]")) withParams (
-              params
-            )).tree
-         }
+          (DEF(f"handle$name%s", valueCache("scala.concurrent.Future[HandleResult]")) withParams (
+            params
+          )).tree
       }
 
       val handleRequestDef = DEF("handleRequest", valueCache("scala.concurrent.Future[HandleResult]")) withParams(
+        PARAM("authId", LongClass),
+        PARAM("optUserId", optionType(IntClass)),
         PARAM("request", valueCache(f"${packageName.capitalize}%sRpcRequest"))
       ) := BLOCK(
         REF("request") MATCH(
           rpcs map {
             case RpcContent(_, name, attributes, _) =>
+              val rqParams: Vector[Tree] = (attributes map { attr =>
+                REF("r") DOT(attr.name): Tree
+              })
+
+              val clientParams: Vector[Tree] = Vector(
+                REF("authId"),
+                REF("optUserId")
+              )
+
               CASE(REF("r") withType(valueCache(f"Request$name%s"))) ==> (
                 REF(f"handle$name%s") APPLY(
-                  attributes map { attr =>
-                    REF("r") DOT(attr.name)
-                  }
+                  clientParams ++ rqParams
                 )
               )
           }
