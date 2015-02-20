@@ -14,7 +14,7 @@ trait ApiServiceTrees extends TreeHelpers {
           "RpcError",
           "(RpcOk[T], Vector[Update])"
         ),
-        DEF("handleRequest", valueCache("HandleResult")) withParams (
+        DEF("handleRequest", valueCache("scala.concurrent.Future[HandleResult]")) withParams (
           PARAM("request", valueCache("T"))
         )
       )
@@ -48,15 +48,15 @@ trait ApiServiceTrees extends TreeHelpers {
           }
 
           if (params.isEmpty) {
-            DEF(f"handle$name%s()", valueCache("HandleResult")).tree
+            DEF(f"handle$name%s()", valueCache("scala.concurrent.Future[HandleResult]")).tree
           } else {
-            (DEF(f"handle$name%s", valueCache("HandleResult")) withParams (
+            (DEF(f"handle$name%s", valueCache("scala.concurrent.Future[HandleResult]")) withParams (
               params
             )).tree
          }
       }
 
-      val handleRequestDef = DEF("handleRequest", valueCache("HandleResult")) withParams(
+      val handleRequestDef = DEF("handleRequest", valueCache("scala.concurrent.Future[HandleResult]")) withParams(
         PARAM("request", valueCache(f"${packageName.capitalize}%sRpcRequest"))
       ) := BLOCK(
         REF("request") MATCH(
