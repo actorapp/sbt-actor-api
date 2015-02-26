@@ -47,9 +47,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     val rpcRequestDef = TRAITDEF("RpcRequest")
     val rpcResponseDef = TRAITDEF("RpcResponse")
     val errorDataDef = TRAITDEF("ErrorData")
-    val rpcOkDef = CASECLASSDEF("RpcOk") withTypeParams(
-      TYPEVAR("T") UPPER(valueCache("RpcRequest"))
-    ) withParams(PARAM("response", valueCache("T")))
+    val rpcOkDef = CASECLASSDEF("RpcOk") withParams(PARAM("response", valueCache("RpcResponse")))
     val rpcErrorDef = CASECLASSDEF("RpcError") withParams(
       PARAM("code", IntClass),
       PARAM("tag", StringClass),
@@ -71,8 +69,9 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       rpcResponseDef
     )
 
-    val tree = PACKAGE("im.actor.api") := BLOCK(
+    val tree = PACKAGE("im.actor.api.rpc") := BLOCK(
       Vector(
+        IMPORT("scala.concurrent.ExecutionContext"),
         IMPORT("scalaz._"),
         IMPORT("scalaz.std.either._")
       ) ++
@@ -179,6 +178,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
 
     val headerDef = dec2headerDef(rpc.header)
     val responseRefDef = VAL("Response") := responseRef
+    val responseTypeDef = TYPEVAR("Response") := responseRef
 
     val classTrees = serializationTrees(
       packageName,
@@ -192,7 +192,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       rpc.attributes
     )
 
-    val objectTrees = Vector(headerDef, responseRefDef) ++ deserTrees
+    val objectTrees = Vector(headerDef, responseRefDef, responseTypeDef) ++ deserTrees
 
     val (globalRequestRefs, requestTrees) = classWithCompanion(
       packageName,
@@ -366,7 +366,10 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
 
     if (params.isEmpty) {
       (
-        Vector(objRef),
+        Vector(
+          TYPEVAR(name) := ref,
+          objRef
+        ),
         Vector(
           TRAITDEF(name) withParents(parents),
           CASEOBJECTDEF(name) withParents(valueCache(name)) := BLOCK(
@@ -377,7 +380,8 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     } else {
       (
         Vector(
-          TYPEVAR(name) := ref, objRef
+          TYPEVAR(name) := ref,
+          objRef
         ),
         Vector(
           CASECLASSDEF(name) withParents(parents) withParams(params) := BLOCK(classTrees),

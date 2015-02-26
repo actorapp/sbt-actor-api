@@ -8,16 +8,16 @@ trait ApiServiceTrees extends TreeHelpers {
 
   def apiServiceTree = {
     TRAITDEF("ApiService") withTypeParams (
-      TYPEVAR("T") UPPER (valueCache("RpcRequest"))
+      TYPEVAR("RQ") UPPER (valueCache("RpcRequest"))
     ) := BLOCK(
         TYPEVAR("HandleResult") := REF("\\/") APPLYTYPE (
           "RpcError",
-          "(RpcOk[T], Vector[(Long, Update)])"
+          "(RpcOk, Vector[(Long, Update)])"
         ),
         DEF("handleRequest", valueCache("scala.concurrent.Future[HandleResult]")) withParams (
           PARAM("authId", LongClass),
           PARAM("optUserId", optionType(IntClass)),
-          PARAM("request", valueCache("T"))
+          PARAM("request", valueCache("RQ"))
         )
       )
   }
@@ -52,7 +52,9 @@ trait ApiServiceTrees extends TreeHelpers {
             PARAM(attr.name, scalaTyp(attr.typ)): ValDef
           })
 
-          (DEF(f"handle$name%s", valueCache("scala.concurrent.Future[HandleResult]")) withParams (
+          val respType = f"Request$name%s.Response"
+
+          (DEF(f"handle$name%s", valueCache(f"scala.concurrent.Future[RpcError \\/ ($respType%s, Vector[(Long, Update)])]")) withParams (
             params
           )).tree
       }
@@ -62,7 +64,7 @@ trait ApiServiceTrees extends TreeHelpers {
         PARAM("optUserId", optionType(IntClass)),
         PARAM("request", valueCache(f"${packageName.capitalize}%sRpcRequest"))
       ) := BLOCK(
-        REF("request") MATCH(
+        VAL("f") := REF("request") MATCH(
           rpcs map {
             case RpcContent(_, name, attributes, _) =>
               val rqParams: Vector[Tree] = (attributes map { attr =>
@@ -80,13 +82,28 @@ trait ApiServiceTrees extends TreeHelpers {
                 )
               )
           }
+        ),
+
+        REF("f") DOT("map") APPLY(
+          LAMBDA(PARAM("x")) ==>
+            REF("x") MATCH (
+              CASE(REF("\\/-") APPLY(TUPLE(REF("rsp"), REF("updates")))) ==> (
+                REF("\\/-") APPLY(TUPLE(
+                  REF("RpcOk") APPLY(REF("rsp")),
+                  REF("updates")
+                ))
+              ),
+              CASE(REF("err: -\\/[RpcError]")) ==> REF("err")
+            )
         )
       )
+
+      val ecDef: Tree = VAL("ec", valueCache("ExecutionContext")) withFlags(Flags.IMPLICIT)
 
       Vector(
         TRAITDEF(f"${packageName.capitalize}ApiService")
           withParents (f"ApiService[${packageName.capitalize}%sRpcRequest]") := BLOCK(
-            Vector(handleRequestDef) ++
+            Vector(ecDef, handleRequestDef) ++
               handlers
           )
       )
