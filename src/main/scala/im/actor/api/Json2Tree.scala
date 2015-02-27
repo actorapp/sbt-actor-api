@@ -6,7 +6,7 @@ import scala.language.postfixOps
 import scala.collection.mutable
 import spray.json._, DefaultJsonProtocol._
 
-class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with SerializationTrees with DeserializationTrees with ApiServiceTrees {
+class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with SerializationTrees with DeserializationTrees with RequestResponseCodecTrees with ApiServiceTrees {
   val jsonAst = jsonString.parseJson
   val rootObj = jsonAst.convertTo[JsObject]
 
@@ -75,7 +75,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
         IMPORT("scalaz._"),
         IMPORT("scalaz.std.either._")
       ) ++
-        packageTrees ++ baseTrees
+        packageTrees ++ baseTrees :+ requestResponseCodecTrees(packages)
     )
     prettify(treeToString(tree))
   }
@@ -85,7 +85,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       case obj: JsObject =>
         obj.getFields("type", "content") match {
           case Seq(JsString("rpc"), o: JsObject) => Some(o.convertTo[RpcContent])
-          case Seq(JsString("response"), o: JsObject) => Some(o.convertTo[NamedRpcResponse])
+          case Seq(JsString("response"), o: JsObject) => Some(o.convertTo[RpcResponseContent])
           case Seq(JsString("update"), o: JsObject) => Some(o.convertTo[Update])
           case Seq(JsString("update_box"), o: JsObject) => Some(o.convertTo[UpdateBox])
           case Seq(JsString("struct"), o: JsObject) => Some(o.convertTo[Struct])
@@ -136,7 +136,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     ) {
       case (trees, item: Item) => item match {
         case rpc: RpcContent => merge(trees, rpcItemTrees(packageName, rpc))
-        case response: NamedRpcResponse => merge(trees, namedResponseItemTrees(packageName, response))
+        case response: RpcResponseContent => merge(trees, namedResponseItemTrees(packageName, response))
         case update: Update => merge(trees, updateItemTrees(packageName, update))
         case updateBox: UpdateBox => merge(trees, updateBoxItemTrees(packageName, updateBox))
         case struct: Struct => merge(trees, structItemTrees(packageName, struct))
@@ -215,7 +215,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     */
   private def namedResponseItemTrees(
     packageName: String,
-    resp: NamedRpcResponse
+    resp: RpcResponseContent
   ): (Vector[Tree], Vector[Tree]) = {
     val className = f"Response${resp.name}%s"
 
@@ -371,9 +371,11 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
           objRef
         ),
         Vector(
-          TRAITDEF(name) withParents(parents),
+          TRAITDEF(name) withParents(parents) := BLOCK(
+            classTrees
+          ),
           CASEOBJECTDEF(name) withParents(valueCache(name)) := BLOCK(
-            objectTrees ++ classTrees
+            objectTrees
           )
         )
       )

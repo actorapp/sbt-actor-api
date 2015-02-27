@@ -46,12 +46,15 @@ trait NamedItem extends Item {
 trait RpcResponse
 case class AnonymousRpcResponse(header: Int, attributes: Vector[Attribute]) extends Item with RpcResponse {
   def traitExt = None
-  def toNamed(name: String) = NamedRpcResponse(name, header, attributes)
+  def toNamed(name: String) = RpcResponseContent(name, header, attributes)
 }
-case class ReferenceRpcResponse(name: String) extends NamedItem with RpcResponse {
+
+trait NamedRpcResponse extends NamedItem with RpcResponse
+
+case class ReferenceRpcResponse(name: String) extends NamedRpcResponse {
   def traitExt = None
 }
-case class NamedRpcResponse(name: String, header: Int, attributes: Vector[Attribute]) extends NamedItem with RpcResponse {
+case class RpcResponseContent(name: String, header: Int, attributes: Vector[Attribute]) extends NamedRpcResponse {
   def traitExt = None
 }
 
@@ -180,7 +183,7 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
 
   implicit val anonymousRpcResponseFormat = jsonFormat2(AnonymousRpcResponse)
   implicit val referenceRpcResponseFormat = jsonFormat1(ReferenceRpcResponse)
-  implicit val namedRpcResponseFormat     = jsonFormat3(NamedRpcResponse)
+  implicit val rpcResponseContentFormat     = jsonFormat3(RpcResponseContent)
 
   implicit object rpcResponseFormat extends RootJsonFormat[RpcResponse] {
     def write(attr: RpcResponse): JsValue = throw new NotImplementedError()
