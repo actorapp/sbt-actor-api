@@ -44,6 +44,10 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
 
     val updateBoxDef = TRAITDEF("UpdateBox")
     val updateDef = TRAITDEF("Update")
+    val requestDef = CASECLASSDEF("Request") withParams(PARAM("body", valueCache("RpcRequest")))
+    val requestObjDef = OBJECTDEF("Request") := BLOCK(
+      VAL("header") := LIT(1)
+    )
     val rpcRequestDef = TRAITDEF("RpcRequest")
     val rpcResponseDef = TRAITDEF("RpcResponse")
     val errorDataDef = TRAITDEF("ErrorData")
@@ -66,7 +70,9 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       apiServiceTree,
       updateDef,
       rpcRequestDef,
-      rpcResponseDef
+      rpcResponseDef,
+      requestDef,
+      requestObjDef
     )
 
     val tree = PACKAGE("im.actor.api.rpc") := BLOCK(
