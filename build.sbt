@@ -29,8 +29,6 @@ publishTo := {
     Some("releases"  at nexus + "service/local/staging/deploy/maven2")
 }
 
-licenses := Seq("MIT" -> url("http://www.opensource.org/licenses/MIT"))
-
 pomExtra := (
   <url>http://github.com/actorapp/sbt-actor-api</url>
   <licenses>
