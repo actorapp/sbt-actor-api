@@ -48,17 +48,26 @@ trait RequestResponseCodecTrees extends TreeHelpers {
     }
 
     val rpcRqCodec = VAL("rpcRequestCodec") :=
-    requests.foldLeft[Tree](REF("discriminated[RpcRequest]") DOT ("by") APPLY (REF("uint32"))) {
-      case (acc, (request, packageName)) =>
-        acc DOT ("typecase") APPLY (
-          REF(f"$packageName%s.Request${request.name}%s.header.toLong"),
-          REF("PayloadCodec") APPLY(
-            REF(f"request${request.name}%sCodec")
+      requests.foldLeft[Tree](REF("discriminated[RpcRequest]") DOT ("by") APPLY (REF("uint32"))) {
+        case (acc, (request, packageName)) =>
+          acc DOT ("typecase") APPLY (
+            REF(f"$packageName%s.Request${request.name}%s.header.toLong"),
+            REF("PayloadCodec") APPLY(
+              REF(f"request${request.name}%sCodec")
+            )
           )
-        )
-    }
+      }
 
-    rqCodecs :+ rpcRqCodec
+    val requestCodec = VAL("requestCodec") :=
+    REF("discriminated[Request]") DOT("by") APPLY(REF("uint8")) DOT("typecase") APPLY(
+      LIT(1),
+      REF("rpcRequestCodec") DOT("widenOpt") APPLY(
+        REF("Request.apply"),
+        REF("Request.unapply")
+      )
+    )
+
+    rqCodecs :+ rpcRqCodec :+ requestCodec
   }
 
   private def responseCodecTrees(responses: Vector[(NamedRpcResponse, String)]): Vector[Tree] = {
