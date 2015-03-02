@@ -77,7 +77,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
 
     val tree = PACKAGE("im.actor.api.rpc") := BLOCK(
       Vector(
-        IMPORT("scala.concurrent.ExecutionContext"),
+        IMPORT("scala.concurrent._"),
         IMPORT("scalaz._"),
         IMPORT("scalaz.std.either._")
       ) ++

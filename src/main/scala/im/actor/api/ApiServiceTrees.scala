@@ -7,14 +7,18 @@ trait ApiServiceTrees extends TreeHelpers {
   lazy val ScalazEitherType = definitions.getClass("\\/")
 
   def apiServiceTree = {
-    TRAITDEF("ApiService") withTypeParams (
+    TRAITDEF("Service") withTypeParams (
       TYPEVAR("RQ") UPPER (valueCache("RpcRequest"))
     ) := BLOCK(
         TYPEVAR("HandleResult") := REF("\\/") APPLYTYPE (
           "RpcError",
           "(RpcOk, Vector[(Long, Update)])"
         ),
-        DEF("handleRequest", valueCache("scala.concurrent.Future[HandleResult]")) withParams (
+        TYPEVAR("HandlerResult[A <: RpcResponse]") := REF("\\/") APPLYTYPE (
+          "RpcError",
+          "(A, Vector[(Long, Update)])"
+        ),
+        DEF("handleRequest", valueCache("Future[HandleResult]")) withParams (
           PARAM("authId", LongClass),
           PARAM("optUserId", optionType(IntClass)),
           PARAM("request", valueCache("RQ"))
@@ -29,7 +33,7 @@ trait ApiServiceTrees extends TreeHelpers {
       Vector.empty
     } else {
       val handlers: Vector[Tree] = rpcs map {
-        case RpcContent(_, name, attributes, _) =>
+        case RpcContent(_, name, attributes, response) =>
           val params: Vector[ValDef] = Vector(
             PARAM("authId", LongClass): ValDef,
             PARAM("optUserId", optionType(IntClass)): ValDef
@@ -52,14 +56,17 @@ trait ApiServiceTrees extends TreeHelpers {
             PARAM(attr.name, scalaTyp(attr.typ)): ValDef
           })
 
-          val respType = f"Request$name%s.Response"
+          val respType = response match {
+            case _: AnonymousRpcResponse => f"Response$name%s"
+            case named: NamedRpcResponse => f"Refs.Response${named.name}%s"
+          }
 
-          (DEF(f"handle$name%s", valueCache(f"scala.concurrent.Future[RpcError \\/ ($respType%s, Vector[(Long, Update)])]")) withParams (
+          (DEF(f"handle$name%s", valueCache(f"Future[HandlerResult[$respType%s]]")) withParams (
             params
           )).tree
       }
 
-      val handleRequestDef = DEF("handleRequest", valueCache("scala.concurrent.Future[HandleResult]")) withParams(
+      val handleRequestDef = DEF("handleRequest", valueCache("Future[HandleResult]")) withParams(
         PARAM("authId", LongClass),
         PARAM("optUserId", optionType(IntClass)),
         PARAM("request", valueCache(f"${packageName.capitalize}%sRpcRequest"))
@@ -84,25 +91,22 @@ trait ApiServiceTrees extends TreeHelpers {
           }
         ),
 
-        REF("f") DOT("map") APPLY(
-          LAMBDA(PARAM("x")) ==>
-            REF("x") MATCH (
-              CASE(REF("\\/-") APPLY(TUPLE(REF("rsp"), REF("updates")))) ==> (
-                REF("\\/-") APPLY(TUPLE(
-                  REF("RpcOk") APPLY(REF("rsp")),
-                  REF("updates")
-                ))
-              ),
-              CASE(REF("err: -\\/[RpcError]")) ==> REF("err")
-            )
-        )
+        REF("f") DOT("map") APPLY(BLOCK(
+          CASE(REF("\\/-") APPLY(TUPLE(REF("rsp"), REF("updates")))) ==> (
+            REF("\\/-") APPLY(TUPLE(
+              REF("RpcOk") APPLY(REF("rsp")),
+              REF("updates")
+            ))
+          ),
+          CASE(REF("err: -\\/[RpcError]")) ==> REF("err")
+        ))
       )
 
       val ecDef: Tree = VAL("ec", valueCache("ExecutionContext")) withFlags(Flags.IMPLICIT)
 
       Vector(
-        TRAITDEF(f"${packageName.capitalize}ApiService")
-          withParents (f"ApiService[${packageName.capitalize}%sRpcRequest]") := BLOCK(
+        TRAITDEF(f"${packageName.capitalize}Service")
+          withParents (f"Service[${packageName.capitalize}%sRpcRequest]") := BLOCK(
             Vector(ecDef, handleRequestDef) ++
               handlers
           )
