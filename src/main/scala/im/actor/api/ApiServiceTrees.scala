@@ -10,20 +10,20 @@ trait ApiServiceTrees extends TreeHelpers {
     TRAITDEF("Service") withTypeParams (
       TYPEVAR("RQ") UPPER (valueCache("RpcRequest"))
     ) := BLOCK(
-        TYPEVAR("HandleResult") := REF("\\/") APPLYTYPE (
-          "RpcError",
-          "(RpcOk, Vector[(Long, Update)])"
-        ),
-        TYPEVAR("HandlerResult[A <: RpcResponse]") := REF("\\/") APPLYTYPE (
-          "RpcError",
-          "(A, Vector[(Long, Update)])"
-        ),
-        DEF("handleRequest", valueCache("Future[HandleResult]")) withParams (
-          PARAM("authId", LongClass),
-          PARAM("optUserId", optionType(IntClass)),
-          PARAM("request", valueCache("RQ"))
-        )
+      TYPEVAR("HandleResult") := REF("\\/") APPLYTYPE (
+        "RpcError",
+        "(RpcOk, Vector[(Long, Update)])"
+      ),
+      TYPEVAR("HandlerResult[A <: RpcResponse]") := REF("\\/") APPLYTYPE (
+        "RpcError",
+        "(A, Vector[(Long, Update)])"
+      ),
+      DEF("handleRequest", valueCache("Future[HandleResult]")) withParams (
+        PARAM("authId", LongClass),
+        PARAM("optUserId", optionType(IntClass)),
+        PARAM("request", valueCache("RQ"))
       )
+    )
   }
 
   def packageApiServiceTrees(packageName: String, items: Vector[Item]): Vector[Tree] = {
