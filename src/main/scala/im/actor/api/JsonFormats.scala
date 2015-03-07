@@ -167,7 +167,8 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
           jsId match {
             case JsNumber(id) =>
               jsName match {
-                case JsString(name) =>
+                case JsString(unhackedName) =>
+                  val name = hackAttributeName(unhackedName)
                   val typ = attributeTypeFormat.read(jsTyp)
                   Attribute(typ, id.toInt, name)
                 case _ => deserializationError("Attribute name should be JsString")

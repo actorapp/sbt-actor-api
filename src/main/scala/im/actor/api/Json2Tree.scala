@@ -298,6 +298,8 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
   private def structItemTrees(packageName: String, struct: Struct): TreesChildren = {
     val params = paramsTrees(struct.attributes)
 
+
+
     val serTrees = serializationTrees(
       packageName,
       struct.name,
