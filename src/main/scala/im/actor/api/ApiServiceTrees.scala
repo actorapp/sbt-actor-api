@@ -6,23 +6,25 @@ import treehuggerDSL._
 trait ApiServiceTrees extends TreeHelpers {
   lazy val ScalazEitherType = definitions.getClass("\\/")
 
-  def apiServiceTree = {
-    TRAITDEF("Service") withTypeParams (
-      TYPEVAR("RQ") UPPER (valueCache("RpcRequest"))
-    ) := BLOCK(
-      TYPEVAR("HandleResult") := REF("\\/") APPLYTYPE (
-        "RpcError",
-        "(RpcOk, Vector[(Long, Update)])"
+  val baseServiceTrees: Vector[Tree] = {
+    Vector(
+      TRAITDEF("Service") withTypeParams (
+        TYPEVAR("RQ") UPPER (valueCache("RpcRequest"))
+      ) := BLOCK(
+        TYPEVAR("HandleResult") := REF("\\/") APPLYTYPE (
+          "RpcError",
+          "(RpcOk, Vector[(Long, Update)])"
+        ),
+        TYPEVAR("HandlerResult[A <: RpcResponse]") := REF("\\/") APPLYTYPE (
+          "RpcError",
+          "(A, Vector[(Long, Update)])"
+        ),
+        DEF("handleRequest", valueCache("Future[HandleResult]")) withParams (
+          PARAM("clientData", valueCache("ClientData")),
+          PARAM("request", valueCache("RQ"))
+        )
       ),
-      TYPEVAR("HandlerResult[A <: RpcResponse]") := REF("\\/") APPLYTYPE (
-        "RpcError",
-        "(A, Vector[(Long, Update)])"
-      ),
-      DEF("handleRequest", valueCache("Future[HandleResult]")) withParams (
-        PARAM("authId", LongClass),
-        PARAM("optUserId", optionType(IntClass)),
-        PARAM("request", valueCache("RQ"))
-      )
+      CASECLASSDEF("ClientData") withParams(PARAM("authId", LongClass), PARAM("optUserId", optionType(IntClass)))
     )
   }
 
@@ -35,8 +37,7 @@ trait ApiServiceTrees extends TreeHelpers {
       val handlers: Vector[Tree] = rpcs map {
         case RpcContent(_, name, attributes, response) =>
           val params: Vector[ValDef] = Vector(
-            PARAM("authId", LongClass): ValDef,
-            PARAM("optUserId", optionType(IntClass)): ValDef
+            PARAM("clientData", valueCache("ClientData")): ValDef
           ) ++ (attributes map { attr =>
 
             def scalaTyp(typ: Types.AttributeType): Type = typ match {
@@ -67,8 +68,7 @@ trait ApiServiceTrees extends TreeHelpers {
       }
 
       val handleRequestDef = DEF("handleRequest", valueCache("Future[HandleResult]")) withParams(
-        PARAM("authId", LongClass),
-        PARAM("optUserId", optionType(IntClass)),
+        PARAM("clientData", valueCache("ClientData")),
         PARAM("request", valueCache(f"${packageName.capitalize}%sRpcRequest"))
       ) := BLOCK(
         VAL("f") := REF("request") MATCH(
@@ -79,8 +79,7 @@ trait ApiServiceTrees extends TreeHelpers {
               })
 
               val clientParams: Vector[Tree] = Vector(
-                REF("authId"),
-                REF("optUserId")
+                REF("clientData")
               )
 
               CASE(REF("r") withType(valueCache(f"Request$name%s"))) ==> (
