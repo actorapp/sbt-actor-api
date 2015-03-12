@@ -36,9 +36,7 @@ trait ApiServiceTrees extends TreeHelpers {
     } else {
       val handlers: Vector[Tree] = rpcs map {
         case RpcContent(_, name, attributes, response) =>
-          val params: Vector[ValDef] = Vector(
-            PARAM("clientData", valueCache("ClientData")): ValDef
-          ) ++ (attributes map { attr =>
+          val params = (attributes map { attr =>
 
             def scalaTyp(typ: Types.AttributeType): Type = typ match {
               case Types.Int32              => IntClass
@@ -62,8 +60,10 @@ trait ApiServiceTrees extends TreeHelpers {
             case named: NamedRpcResponse => f"Refs.Response${named.name}%s"
           }
 
-          (DEF(f"handle$name%s", valueCache(f"Future[HandlerResult[$respType%s]]")) withParams (
-            params
+          (DEF(f"handle$name%s", valueCache(f"Future[HandlerResult[$respType%s]]")).withParams(
+            params.toVector
+          ).withParams(
+              PARAM("clientData", valueCache("ClientData")).withFlags(Flags.IMPLICIT)
           )).tree
       }
 
@@ -78,14 +78,12 @@ trait ApiServiceTrees extends TreeHelpers {
                 REF("r") DOT(attr.name): Tree
               })
 
-              val clientParams: Vector[Tree] = Vector(
-                REF("clientData")
-              )
-
               CASE(REF("r") withType(valueCache(f"Request$name%s"))) ==> (
-                REF(f"handle$name%s") APPLY(
-                  clientParams ++ rqParams
-                )
+                (if (rqParams.isEmpty)
+                    REF(f"handle$name%s")
+                  else
+                    REF(f"handle$name%s") APPLY(rqParams)
+                ) APPLY(REF("clientData"))
               )
           }
         ),
