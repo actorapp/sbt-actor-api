@@ -40,19 +40,19 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
 
     val (globalRefsV, packageTrees) = refsTreesSeq.unzip
 
-    val globalRefsTree = OBJECTDEF("Refs") withFlags(PRIVATEWITHIN("api")) := BLOCK(globalRefsV.flatten)
+    val globalRefsTree: Tree = OBJECTDEF("Refs") withFlags(PRIVATEWITHIN("api")) := BLOCK(globalRefsV.flatten)
 
-    val updateBoxDef = TRAITDEF("UpdateBox")
-    val updateDef = TRAITDEF("Update")
-    val requestDef = CASECLASSDEF("Request") withParams(PARAM("body", valueCache("RpcRequest")))
-    val requestObjDef = OBJECTDEF("Request") := BLOCK(
+    val updateBoxDef: Tree = TRAITDEF("UpdateBox")
+    val updateDef: Tree = TRAITDEF("Update")
+    val requestDef: Tree = CASECLASSDEF("Request") withParams(PARAM("body", valueCache("RpcRequest")))
+    val requestObjDef: Tree = OBJECTDEF("Request") := BLOCK(
       VAL("header") := LIT(1)
     )
-    val rpcRequestDef = TRAITDEF("RpcRequest")
-    val rpcResponseDef = TRAITDEF("RpcResponse")
-    val errorDataDef = TRAITDEF("ErrorData")
-    val rpcOkDef = CASECLASSDEF("RpcOk") withParams(PARAM("response", valueCache("RpcResponse")))
-    val rpcErrorDef = CASECLASSDEF("RpcError") withParams(
+    val rpcRequestDef: Tree = TRAITDEF("RpcRequest")
+    val rpcResponseDef: Tree = TRAITDEF("RpcResponse")
+    val errorDataDef: Tree = TRAITDEF("ErrorData")
+    val rpcOkDef: Tree = CASECLASSDEF("RpcOk") withParams(PARAM("response", valueCache("RpcResponse")))
+    val rpcErrorDef: Tree = CASECLASSDEF("RpcError") withParams(
       PARAM("code", IntClass),
       PARAM("tag", StringClass),
       PARAM("userMessage", StringClass),
@@ -67,17 +67,16 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       errorDataDef,
       rpcOkDef,
       rpcErrorDef,
-      apiServiceTree,
       updateDef,
       rpcRequestDef,
       rpcResponseDef,
       requestDef,
       requestObjDef
-    )
+    ) ++ baseServiceTrees
 
     val tree = PACKAGE("im.actor.api.rpc") := BLOCK(
       Vector(
-        IMPORT("scala.concurrent.ExecutionContext"),
+        IMPORT("scala.concurrent._"),
         IMPORT("scalaz._"),
         IMPORT("scalaz.std.either._")
       ) ++
@@ -297,6 +296,8 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
 
   private def structItemTrees(packageName: String, struct: Struct): TreesChildren = {
     val params = paramsTrees(struct.attributes)
+
+
 
     val serTrees = serializationTrees(
       packageName,
