@@ -13,11 +13,11 @@ trait ApiServiceTrees extends TreeHelpers {
       ) := BLOCK(
         TYPEVAR("HandleResult") := REF("\\/") APPLYTYPE (
           "RpcError",
-          "(RpcOk, Vector[(Long, Update)])"
+          "RpcOk"
         ),
         TYPEVAR("HandlerResult[A <: RpcResponse]") := REF("\\/") APPLYTYPE (
           "RpcError",
-          "(A, Vector[(Long, Update)])"
+          "A"
         ),
         DEF("handleRequest", valueCache("Future[HandleResult]")) withParams (
           PARAM("clientData", valueCache("ClientData")),
@@ -89,11 +89,8 @@ trait ApiServiceTrees extends TreeHelpers {
         ),
 
         REF("f") DOT("map") APPLY(BLOCK(
-          CASE(REF("\\/-") APPLY(TUPLE(REF("rsp"), REF("updates")))) ==> (
-            REF("\\/-") APPLY(TUPLE(
-              REF("RpcOk") APPLY(REF("rsp")),
-              REF("updates")
-            ))
+          CASE(REF("\\/-") APPLY(REF("rsp"))) ==> (
+            REF("\\/-") APPLY(REF("RpcOk") APPLY(REF("rsp")))
           ),
           CASE(REF("err: -\\/[RpcError]")) ==> REF("err")
         ))
