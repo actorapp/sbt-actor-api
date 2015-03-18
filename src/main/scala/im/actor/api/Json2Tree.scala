@@ -43,7 +43,9 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     val globalRefsTree: Tree = OBJECTDEF("Refs") withFlags(PRIVATEWITHIN("api")) := BLOCK(globalRefsV.flatten)
 
     val updateBoxDef: Tree = TRAITDEF("UpdateBox")
-    val updateDef: Tree = TRAITDEF("Update")
+    val updateDef: Tree = TRAITDEF("Update") := BLOCK(
+      VAL("header", IntClass)
+    )
     val requestDef: Tree = CASECLASSDEF("Request") withParams(PARAM("body", valueCache("RpcRequest")))
     val requestObjDef: Tree = OBJECTDEF("Request") := BLOCK(
       VAL("header") := LIT(1)
@@ -262,6 +264,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     val className = f"Update${update.name}%s"
     val params = paramsTrees(update.attributes)
     val headerDef = dec2headerDef(update.header)
+    val headerRef = VAL("header") := REF(className) DOT("header")
 
     val serTrees = serializationTrees(
       packageName,
@@ -275,7 +278,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       update.attributes
     )
 
-    classWithCompanion(packageName, className, Vector(valueCache("Update")), params, serTrees, Vector(headerDef) ++ deserTrees)
+    classWithCompanion(packageName, className, Vector(valueCache("Update")), params, serTrees :+ headerRef, deserTrees :+ headerDef)
   }
 
   private def updateBoxItemTrees(packageName: String, ub: UpdateBox): (Vector[Tree], Vector[Tree]) = {
