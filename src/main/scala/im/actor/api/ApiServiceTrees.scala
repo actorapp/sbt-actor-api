@@ -24,7 +24,15 @@ trait ApiServiceTrees extends TreeHelpers {
           PARAM("request", valueCache("RQ"))
         )
       ),
-      CASECLASSDEF("ClientData") withParams(PARAM("authId", LongClass), PARAM("optUserId", optionType(IntClass)))
+      TRAITDEF("BaseClientData") := BLOCK(
+        VAL("authId", LongClass)
+      ),
+      CASECLASSDEF("ClientData")
+        withParams(PARAM("authId", LongClass), PARAM("optUserId", optionType(IntClass)))
+        withParents(valueCache("BaseClientData")),
+      CASECLASSDEF("AuthorizedClientData")
+        withParams(PARAM("authId", LongClass), PARAM("userId", IntClass))
+        withParents(valueCache("BaseClientData"))
     )
   }
 
