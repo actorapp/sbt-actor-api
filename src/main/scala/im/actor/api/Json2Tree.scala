@@ -248,7 +248,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     )
 
     val traitDef = TRAITDEF(trai.name) := BLOCK(
-      traitSerializationTrees(trai.name, children)
+      traitSerializationTrees(trai.name, children) :+ VAL("header", IntClass).tree
     )
 
     val objDef = OBJECTDEF(trai.name) := BLOCK(
@@ -313,16 +313,16 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       struct.attributes
     )
 
-    val (parents, traitChildren) = struct.`trait` match {
+    val (parents, traitImplTrees) = struct.`trait` match {
       case Some(traitExt @ TraitExt(traitName, traitKey)) =>
         (
           Vector(typeRef(valueCache(traitName))),
-          Vector(traitExt)
+          Vector(VAL("header") := LIT(traitExt.key))
         )
       case None => (Vector.empty, Vector.empty)
     }
 
-    classWithCompanion(packageName, struct.name, parents, params, serTrees, deserTrees) match {
+    classWithCompanion(packageName, struct.name, parents, params, serTrees ++ traitImplTrees, deserTrees) match {
       case (globalRefs, trees) =>
         (globalRefs, trees, Vector(struct))
     }
