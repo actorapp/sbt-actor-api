@@ -15,7 +15,7 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "com.eed3si9n" %% "treehugger" % "0.3.0",
+  "com.eed3si9n" %% "treehugger" % "0.4.1",
   "com.google.protobuf" % "protobuf-java" % "2.6.1",
   "io.spray" %%  "spray-json" % "1.3.1",
   "org.specs2" %% "specs2-core" % "2.4.15" % "test"

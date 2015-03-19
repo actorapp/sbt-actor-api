@@ -42,7 +42,7 @@ trait ApiServiceTrees extends TreeHelpers {
     if (rpcs.isEmpty) {
       Vector.empty
     } else {
-      val handlers: Vector[Tree] = rpcs map {
+      val handlers: Vector[Tree] = (rpcs map {
         case RpcContent(_, name, attributes, response) =>
           val params = (attributes map { attr =>
 
@@ -68,12 +68,29 @@ trait ApiServiceTrees extends TreeHelpers {
             case named: NamedRpcResponse => f"Refs.Response${named.name}%s"
           }
 
-          (DEF(f"handle$name%s", valueCache(f"Future[HandlerResult[$respType%s]]")).withParams(
-            params.toVector
-          ).withParams(
+          val hname = f"handle$name%s"
+
+          val jhname = "j" + hname
+          val htype = valueCache(f"Future[HandlerResult[$respType%s]]")
+
+          // workaround for eed3si9n/treehugger#26
+          val shname =
+            if (params.isEmpty)
+              hname + "()"
+            else
+              hname
+
+          Vector(
+            (DEF(jhname, htype).withParams(
+              params.toVector :+ PARAM("clientData", valueCache("ClientData")).tree
+            )).tree,
+            DEF(shname, htype).withParams(
+              params.toVector
+            ).withParams(
               PARAM("clientData", valueCache("ClientData")).withFlags(Flags.IMPLICIT)
-          )).tree
-      }
+            ) := REF(jhname) APPLY(attributes.map(a => REF(a.name)) :+ REF("clientData"))
+          )
+      }).flatten
 
       val handleRequestDef = DEF("handleRequest", valueCache("Future[HandleResult]")) withParams(
         PARAM("clientData", valueCache("ClientData")),
@@ -88,10 +105,10 @@ trait ApiServiceTrees extends TreeHelpers {
 
               CASE(REF("r") withType(valueCache(f"Request$name%s"))) ==> (
                 (if (rqParams.isEmpty)
-                    REF(f"handle$name%s")
+                    REF(f"jhandle$name%s") APPLY(REF("clientData"))
                   else
-                    REF(f"handle$name%s") APPLY(rqParams)
-                ) APPLY(REF("clientData"))
+                    REF(f"jhandle$name%s") APPLY(rqParams :+ REF("clientData"))
+                )
               )
           }
         ),
