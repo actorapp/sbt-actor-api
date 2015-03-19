@@ -44,7 +44,7 @@ object SbtActorApi extends AutoPlugin {
       log.info(f"$input%s does not exists")
       Nil
     } else {
-      val output = targetDir / "scala"
+      val output = targetDir / "main" / "scala"
 
       val cached = FileFunction.cached(streams.cacheDirectory / "actor-api", FilesInfo.lastModified, FilesInfo.exists) {
         (in: Set[File]) => {
