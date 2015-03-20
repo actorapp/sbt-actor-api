@@ -45,7 +45,8 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     val updateBoxDef: Tree = TRAITDEF("UpdateBox")
     val updateDef: Tree = TRAITDEF("Update") := BLOCK(
       VAL("header", IntClass),
-      DEF("toByteArray", arrayType(ByteClass))
+      DEF("toByteArray", arrayType(ByteClass)),
+      DEF("getSerializedSize", IntClass)
     )
     val requestDef: Tree = CASECLASSDEF("Request") withParams(PARAM("body", valueCache("RpcRequest")))
     val requestObjDef: Tree = OBJECTDEF("Request") := BLOCK(
