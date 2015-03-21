@@ -48,23 +48,30 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     )
 
     val updateBoxDef: Tree = TRAITDEF("UpdateBox")
-    val updateDef: Tree = TRAITDEF("Update") withParents(valueCache("BSerializable")) := BLOCK(
+    val updateDef: Tree = TRAITDEF("Update") withParents (valueCache("BSerializable")) := BLOCK(
       VAL("header", IntClass)
     )
     val requestDef: Tree = CASECLASSDEF("Request") withParams (PARAM("body", valueCache("RpcRequest")))
     val requestObjDef: Tree = OBJECTDEF("Request") := BLOCK(
       VAL("header") := LIT(1)
     )
-    val rpcRequestDef: Tree = TRAITDEF("RpcRequest") withParents(valueCache("BSerializable"))
-    val rpcResponseDef: Tree = TRAITDEF("RpcResponse") withParents(valueCache("BSerializable"))
-    val errorDataDef: Tree = TRAITDEF("ErrorData") withParents(valueCache("BSerializable"))
-    val rpcOkDef: Tree = CASECLASSDEF("RpcOk") withParams (PARAM("response", valueCache("RpcResponse")))
-    val rpcErrorDef: Tree = CASECLASSDEF("RpcError") withParams(
+
+    val rpcResultDef: Tree = TRAITDEF("RpcResult")
+
+    val rpcRequestDef: Tree = TRAITDEF("RpcRequest") withParents (valueCache("BSerializable"))
+    val rpcResponseDef: Tree = TRAITDEF("RpcResponse") withParents (valueCache("BSerializable"))
+    val errorDataDef: Tree = TRAITDEF("ErrorData") withParents (valueCache("BSerializable"))
+    val rpcOkDef: Tree = CASECLASSDEF("RpcOk") withParents (valueCache("RpcResult")) withParams (PARAM("response", valueCache("RpcResponse")))
+    val rpcErrorDef: Tree = CASECLASSDEF("RpcError") withParents (valueCache("RpcResult")) withParams(
       PARAM("code", IntClass),
       PARAM("tag", StringClass),
       PARAM("userMessage", StringClass),
       PARAM("canTryAgain", BooleanClass),
       PARAM("data", optionType(valueCache("ErrorData")))
+      )
+    val rpcInternalErrorDef: Tree = CASECLASSDEF("RpcInternalError") withParents (valueCache("RpcResult")) withParams(
+      PARAM("canTryAgain", BooleanClass),
+      PARAM("tryAgainDelay", IntClass)
       )
 
     val baseTrees: Vector[Tree] = Vector(
@@ -73,8 +80,10 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       bserializableDef,
       updateBoxDef,
       errorDataDef,
+      rpcResultDef,
       rpcOkDef,
       rpcErrorDef,
+      rpcInternalErrorDef,
       updateDef,
       rpcRequestDef,
       rpcResponseDef,
@@ -371,14 +380,12 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     }
   }
 
-  private def classWithCompanion(
-                                  packageName: String,
-                                  name: String,
-                                  parents: Vector[Type],
-                                  params: Vector[ValDef],
-                                  classTrees: Vector[Tree],
-                                  objectTrees: Vector[Tree]
-                                  ): (Vector[Tree], Vector[Tree]) = {
+  private def classWithCompanion(packageName: String,
+                                 name: String,
+                                 parents: Vector[Type],
+                                 params: Vector[ValDef],
+                                 classTrees: Vector[Tree],
+                                 objectTrees: Vector[Tree]): (Vector[Tree], Vector[Tree]) = {
     val ref = REF(f"$packageName%s.$name%s")
     val objRef = VAL(name) := ref
 
