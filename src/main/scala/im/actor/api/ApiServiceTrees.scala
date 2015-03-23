@@ -18,13 +18,17 @@ trait ApiServiceTrees extends TreeHelpers {
         VAL("handleRequestPartial", valueCache("PartialFunction[RpcRequest, ClientData => Future[HandleResult]]"))
       ),
       TRAITDEF("BaseClientData") := BLOCK(
-        VAL("authId", LongClass)
+        VAL("authId", LongClass),
+        VAL("sessionId", LongClass)
       ),
       CASECLASSDEF("ClientData")
-        withParams(PARAM("authId", LongClass), PARAM("optUserId", optionType(IntClass)))
+        withParams(PARAM("authId", LongClass), PARAM("sessionId", LongClass), PARAM("optUserId", optionType(IntClass)))
         withParents (valueCache("BaseClientData")),
       CASECLASSDEF("AuthorizedClientData")
-        withParams(PARAM("authId", LongClass), PARAM("userId", IntClass))
+        withParams(PARAM("authId", LongClass), PARAM("sessionId", LongClass), PARAM("userId", IntClass))
+        withParents (valueCache("BaseClientData")),
+      CASECLASSDEF("GuestClientData")
+        withParams(PARAM("authId", LongClass), PARAM("sessionId", LongClass))
         withParents (valueCache("BaseClientData"))
     )
   }
