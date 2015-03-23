@@ -11,6 +11,7 @@ object SbtActorApi extends AutoPlugin {
   val outputPath = SettingKey[File]("actor-schema-output-path", "The paths where to save the generated *.scala files.")
 
   lazy val actorapi = TaskKey[Seq[File]]("actorapi", "Compile json schema to scala code")
+  lazy val actorapiClean = TaskKey[Seq[File]]("actorapi-clean", "Clean generated code")
 
   lazy val actorapiMain = SettingKey[String]("actorapi-main", "ActorApi main class.")
 
@@ -30,8 +31,30 @@ object SbtActorApi extends AutoPlugin {
       streams
     ).map(generate),
 
-    sourceGenerators in Compile <+= (actorapi).task
+    actorapiClean <<= (
+      sourceManaged in ActorApi,
+      streams).map(clean),
+
+    sourceGenerators in Compile <+= actorapi
   )
+
+  private def compiledFileDir(targetDir: File): File =
+    targetDir / "main" / "scala"
+
+  private def compiledFile(targetDir: File): File =
+    compiledFileDir(targetDir) / "ActorApi.scala"
+
+  private def clean(targetDir: File, streams: TaskStreams): Seq[File] = {
+    val log = streams.log
+
+    log.info("Cleaning actor schema")
+
+    val file = compiledFile(targetDir)
+    if (file.exists())
+      file.delete()
+
+    Seq(file)
+  }
 
   private def generate(srcDir: File, targetDir: File, classpath: Classpath, javaHome: Option[File], streams: TaskStreams): Seq[File] = {
     val log = streams.log
@@ -40,21 +63,21 @@ object SbtActorApi extends AutoPlugin {
 
     val input = srcDir / "actor-api"
 
-    if (!input.exists) {
+    if (!input.exists()) {
       log.info(f"$input%s does not exists")
       Nil
     } else {
-      val output = targetDir / "scala"
+      val output = compiledFileDir(targetDir)
 
       val cached = FileFunction.cached(streams.cacheDirectory / "actor-api", FilesInfo.lastModified, FilesInfo.exists) {
         (in: Set[File]) => {
-          IO.delete(output)
-          IO.createDirectory(output)
+          if (!output.exists())
+            IO.createDirectory(output)
 
           val src = input / "actor.json"
           if (src.exists()) {
             val tree = (new Json2Tree(IO.read(src))).convert()
-            val targetFile = output / "ActorApi.scala"
+            val targetFile = compiledFile(targetDir)
 
             log.info(f"Generated ActorApi.scala $targetFile%s")
 

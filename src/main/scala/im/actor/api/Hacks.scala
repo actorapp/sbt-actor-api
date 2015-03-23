@@ -6,6 +6,10 @@ trait Hacks {
   def hackAttributeName(name: String): String = {
     if (name == "uid")
       "userId"
+    else if (name.endsWith("Uid"))
+      name.take(name.length - 3) + "UserId"
+    else if (name == "rid")
+      "randomId"
     else
       name
   }

@@ -3,25 +3,28 @@ package im.actor.api
 import treehugger.forest._, definitions._
 import treehuggerDSL._
 
-trait RequestResponseCodecTrees extends TreeHelpers {
-  def requestResponseCodecTrees(packages: Vector[(String, Vector[Item])]): Tree = {
-    val (requests, responses) = packages.foldLeft[(Vector[(RpcContent, String)], Vector[(NamedRpcResponse, String)])]((Vector.empty, Vector.empty)) {
+trait CodecTrees extends TreeHelpers {
+  def codecTrees(packages: Vector[(String, Vector[Item])]): Tree = {
+    val (requests, responses, structs) = packages.foldLeft[(Vector[(RpcContent, String)], Vector[(NamedRpcResponse, String)], Vector[(Struct, String)])]((Vector.empty, Vector.empty, Vector.empty)) {
       case (acc, (packageName, items)) =>
-        val newItems = items.foldLeft[(Vector[(RpcContent, String)], Vector[(NamedRpcResponse, String)])]((Vector.empty, Vector.empty)) {
-          case ((rqAcc, rspAcc), r: RpcContent) =>
+        val newItems = items.foldLeft[(Vector[(RpcContent, String)], Vector[(NamedRpcResponse, String)], Vector[(Struct, String)])]((Vector.empty, Vector.empty, Vector.empty)) {
+          case ((rqAcc, rspAcc, structAcc), r: RpcContent) =>
             val rq = (r, packageName)
             r.response match {
-              case rsp: AnonymousRpcResponse => (rqAcc :+ rq, rspAcc :+ (rsp.toNamed(r.name), packageName))
-              case _                         => (rqAcc :+ rq, rspAcc)
+              case rsp: AnonymousRpcResponse => (rqAcc :+ rq, rspAcc :+ (rsp.toNamed(r.name), packageName), structAcc)
+              case _                         => (rqAcc :+ rq, rspAcc, structAcc)
             }
-          case ((rqAcc, rspAcc), r: RpcResponseContent) =>
-            (rqAcc, rspAcc :+ (r, packageName))
+          case ((rqAcc, rspAcc, structAcc), r: RpcResponseContent) =>
+            (rqAcc, rspAcc :+ (r, packageName), structAcc)
+          case ((rqAcc, rspAcc, structAcc), s: Struct) =>
+            (rqAcc, rspAcc, structAcc :+ (s, packageName))
           case (acc, r) =>
             acc
         }
         (
           acc._1 ++ newItems._1,
-          acc._2 ++ newItems._2
+          acc._2 ++ newItems._2,
+          acc._3 ++ newItems._3
         )
     }
 
@@ -35,8 +38,17 @@ trait RequestResponseCodecTrees extends TreeHelpers {
 
         DEF("protoPayload[A]") withParams (PARAM("payloadCodec", valueCache("Codec[A]"))) :=
           NEW(REF("PayloadCodec[A]")) APPLY (REF("payloadCodec"))
-      ) ++ requestCodecTrees(requests) ++ responseCodecTrees(responses)
+      ) ++ requestCodecTrees(requests) ++ responseCodecTrees(responses) ++ structCodecTrees(structs)
     )
+  }
+
+  private def structCodecTrees(structs: Vector[(Struct, String)]): Vector[Tree] = {
+    structs map {
+      case (struct, packageName) =>
+        val structType = f"$packageName%s.${struct.name}%s"
+
+        codecTree(packageName, struct.name, "")
+    }
   }
 
   private def requestCodecTrees(requests: Vector[(RpcContent, String)]): Vector[Tree] = {
@@ -44,24 +56,24 @@ trait RequestResponseCodecTrees extends TreeHelpers {
       case (RpcContent(_, name, _, _), packageName) =>
         val rqType = f"$packageName%s.Request$name%s"
 
-        codecTree(packageName, name, "request")
+        codecTree(packageName, name, "Request")
     }
 
-    val rpcRqCodec = VAL("rpcRequestCodec") :=
+    val rpcRqCodec = VAL("RpcRequestCodec") :=
       requests.foldLeft[Tree](REF("discriminated[RpcRequest]") DOT ("by") APPLY (REF("uint32"))) {
         case (acc, (request, packageName)) =>
           acc DOT ("typecase") APPLY (
             REF(f"$packageName%s.Request${request.name}%s.header.toLong"),
             REF("PayloadCodec") APPLY(
-              REF(f"request${request.name}%sCodec")
+              REF(f"Request${request.name}%sCodec")
             )
           )
       }
 
-    val requestCodec = VAL("requestCodec") :=
+    val requestCodec = VAL("RequestCodec") :=
     REF("discriminated[Request]") DOT("by") APPLY(REF("uint8")) DOT("typecase") APPLY(
       LIT(1),
-      REF("rpcRequestCodec") DOT("widenOpt") APPLY(
+      REF("RpcRequestCodec") DOT("widenOpt") APPLY(
         REF("Request.apply"),
         REF("Request.unapply")
       )
@@ -75,16 +87,16 @@ trait RequestResponseCodecTrees extends TreeHelpers {
       case (response, packageName) =>
         val rspType = f"$packageName%s.Response${response.name}%s"
 
-        codecTree(packageName, response.name, "response")
+        codecTree(packageName, response.name, "Response")
     }
 
-    val rpcRspCodec = VAL("rpcResponseCodef") :=
+    val rpcRspCodec = VAL("RpcResponseCodec") :=
     responses.foldLeft[Tree](REF("discriminated[RpcResponse]") DOT ("by") APPLY (REF("uint32"))) {
       case (acc, (response, packageName)) =>
         acc DOT ("typecase") APPLY (
           REF(f"$packageName%s.Response${response.name}%s.header.toLong"),
           REF("PayloadCodec") APPLY(
-            REF(f"response${response.name}%sCodec")
+            REF(f"Response${response.name}%sCodec")
           )
         )
     }
