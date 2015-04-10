@@ -5,26 +5,38 @@ import treehuggerDSL._
 
 trait CodecTrees extends TreeHelpers {
   def codecTrees(packages: Vector[(String, Vector[Item])]): Tree = {
-    val (requests, responses, structs) = packages.foldLeft[(Vector[(RpcContent, String)], Vector[(NamedRpcResponse, String)], Vector[(Struct, String)])]((Vector.empty, Vector.empty, Vector.empty)) {
+    val (requests, responses, structs, ubs) =
+      packages.foldLeft[
+        (Vector[(RpcContent, String)],
+          Vector[(NamedRpcResponse, String)],
+          Vector[(Struct, String)],
+          Vector[(UpdateBox, String)])]((Vector.empty, Vector.empty, Vector.empty, Vector.empty)) {
       case (acc, (packageName, items)) =>
-        val newItems = items.foldLeft[(Vector[(RpcContent, String)], Vector[(NamedRpcResponse, String)], Vector[(Struct, String)])]((Vector.empty, Vector.empty, Vector.empty)) {
-          case ((rqAcc, rspAcc, structAcc), r: RpcContent) =>
+        val newItems = items.foldLeft[
+          (Vector[(RpcContent, String)],
+            Vector[(NamedRpcResponse, String)],
+            Vector[(Struct, String)],
+            Vector[(UpdateBox, String)])]((Vector.empty, Vector.empty, Vector.empty, Vector.empty)) {
+          case ((rqAcc, rspAcc, structAcc, ubAcc), r: RpcContent) =>
             val rq = (r, packageName)
             r.response match {
-              case rsp: AnonymousRpcResponse => (rqAcc :+ rq, rspAcc :+ (rsp.toNamed(r.name), packageName), structAcc)
-              case _                         => (rqAcc :+ rq, rspAcc, structAcc)
+              case rsp: AnonymousRpcResponse => (rqAcc :+ rq, rspAcc :+ (rsp.toNamed(r.name), packageName), structAcc, ubAcc)
+              case _                         => (rqAcc :+ rq, rspAcc, structAcc, ubAcc)
             }
-          case ((rqAcc, rspAcc, structAcc), r: RpcResponseContent) =>
-            (rqAcc, rspAcc :+ (r, packageName), structAcc)
-          case ((rqAcc, rspAcc, structAcc), s: Struct) =>
-            (rqAcc, rspAcc, structAcc :+ (s, packageName))
+          case ((rqAcc, rspAcc, structAcc, ubAcc), r: RpcResponseContent) =>
+            (rqAcc, rspAcc :+ (r, packageName), structAcc, ubAcc)
+          case ((rqAcc, rspAcc, structAcc, ubAcc), s: Struct) =>
+            (rqAcc, rspAcc, structAcc :+ (s, packageName), ubAcc)
+          case ((rqAcc, rspAcc, structAcc, ubAcc), ub: UpdateBox) =>
+            (rqAcc, rspAcc, structAcc, ubAcc :+ (ub, packageName))
           case (acc, r) =>
             acc
         }
         (
           acc._1 ++ newItems._1,
           acc._2 ++ newItems._2,
-          acc._3 ++ newItems._3
+          acc._3 ++ newItems._3,
+          acc._4 ++ newItems._4
         )
     }
 
@@ -38,7 +50,10 @@ trait CodecTrees extends TreeHelpers {
 
         DEF("protoPayload[A]") withParams (PARAM("payloadCodec", valueCache("Codec[A]"))) :=
           NEW(REF("PayloadCodec[A]")) APPLY (REF("payloadCodec"))
-      ) ++ requestCodecTrees(requests) ++ responseCodecTrees(responses) ++ structCodecTrees(structs)
+      ) ++ requestCodecTrees(requests)
+        ++ responseCodecTrees(responses)
+        ++ structCodecTrees(structs)
+        ++ updateBoxCodecTrees(ubs)
     )
   }
 
@@ -51,11 +66,29 @@ trait CodecTrees extends TreeHelpers {
     }
   }
 
+  private def updateBoxCodecTrees(ubs: Vector[(UpdateBox, String)]): Vector[Tree] = {
+    val ubCodecs = ubs map {
+      case (ub, packageName) =>
+        codecTree(packageName, ub.name, "")
+    }
+
+    val updateBoxCodec = VAL("UpdateBoxCodec") :=
+      ubs.foldLeft[Tree](REF("discriminated[UpdateBox]") DOT ("by") APPLY (REF("uint32"))) {
+        case (acc, (ub, packageName)) =>
+          acc DOT ("typecase") APPLY (
+            REF(f"$packageName%s.${ub.name}%s.header.toLong"),
+            REF("PayloadCodec") APPLY(
+              REF(f"${ub.name}%sCodec")
+              )
+            )
+      }
+
+    ubCodecs :+ updateBoxCodec
+  }
+
   private def requestCodecTrees(requests: Vector[(RpcContent, String)]): Vector[Tree] = {
     val rqCodecs = requests map {
       case (RpcContent(_, name, _, _), packageName) =>
-        val rqType = f"$packageName%s.Request$name%s"
-
         codecTree(packageName, name, "Request")
     }
 
