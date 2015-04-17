@@ -198,7 +198,15 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
         SOME(reader(optAttrType))
       case Types.List(Types.Struct(structName)) =>
         BLOCK(
-          REF("Refs") DOT(structName) DOT("parseFrom") APPLY(REF("in"))
+          VAL("length") := REF("in") DOT("readRawVarint32") APPLY(),
+          VAL("oldLimit") := REF("in") DOT("pushLimit") APPLY(REF("length")),
+
+          VAL("res") := REF("Refs") DOT(structName) DOT("parseFrom") APPLY(REF("in")),
+
+          REF("in") DOT("checkLastTagWas") APPLY(LIT(0)),
+          REF("in") DOT("popLimit") APPLY(REF("oldLimit")),
+
+          REF("res")
         )
       case Types.List(listAttrType) =>
         BLOCK(
