@@ -107,9 +107,15 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
             )
           case typ =>
             val optAttr = f"opt${attr.name}%s"
+
+            val optAttrOrDefault = attr.name match {
+              case "extType" => REF("Some") APPLY(REF(optAttr) DOT("getOrElse") APPLY(LIT(0)))
+              case _ => REF(optAttr)
+            }
+
             (
               params :+ PARAM(optAttr, partialAttrType(attr.typ)).tree,
-              forExprs :+ (VALFROM(attr.name) := REF(optAttr))
+              forExprs :+ (VALFROM(attr.name) := optAttrOrDefault)
             )
         }
     }
