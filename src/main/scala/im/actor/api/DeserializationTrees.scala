@@ -108,6 +108,7 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
           case typ =>
             val optAttr = f"opt${attr.name}%s"
 
+            // FIXME: terrible hack to support buggy clients who don't write extType
             val optAttrOrDefault = attr.name match {
               case "extType" => REF("Some") APPLY(REF(optAttr) DOT("getOrElse") APPLY(LIT(0)))
               case _ => REF(optAttr)
