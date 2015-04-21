@@ -213,7 +213,6 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     )
 
     val deserTrees = deserializationTrees(
-      packageName,
       className,
       rpc.attributes
     )
@@ -255,7 +254,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       className,
       resp.attributes
     )
-    val deserTrees = deserializationTrees(packageName, className, resp.attributes)
+    val deserTrees = deserializationTrees(className, resp.attributes)
 
     classWithCompanion(packageName, className, Vector(valueCache("RpcResponse")), params, serTrees, deserTrees, Vector(headerDef))
   }
@@ -289,7 +288,6 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     )
 
     val deserTrees = deserializationTrees(
-      packageName,
       className,
       update.attributes
     )
@@ -307,7 +305,6 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     )
 
     val deserTrees = deserializationTrees(
-      packageName,
       ub.name,
       ub.attributes
     )
@@ -320,14 +317,22 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
   private def structItemTrees(packageName: String, struct: Struct): TreesChildren = {
     val params = paramsTrees(struct.attributes)
 
-    val serTrees = serializationTrees(
-      packageName,
-      struct.name,
-      struct.attributes
-    )
+    val serTrees =
+      if (struct.`trait`.isEmpty) {
+        serializationTrees(
+          packageName,
+          struct.name,
+          struct.attributes
+        )
+      } else {
+        traitChildSerializationTrees(
+          packageName,
+          struct.name,
+          struct.attributes
+        )
+      }
 
     val deserTrees = deserializationTrees(
-      packageName,
       struct.name,
       struct.attributes
     )

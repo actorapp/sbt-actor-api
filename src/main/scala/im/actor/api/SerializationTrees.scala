@@ -37,7 +37,7 @@ trait SerializationTrees extends TreeHelpers {
             writer(id, "x", listAttrType)
           )
         )
-      case Types.Struct(structName) =>
+      case struct @ Types.Struct(structName) =>
         Vector(
           REF("out") DOT("writeTag") APPLY(LIT(id), REF("com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED")),
           REF("out") DOT("writeRawVarint32") APPLY(REF(name) DOT("getSerializedSize")),
@@ -132,15 +132,63 @@ trait SerializationTrees extends TreeHelpers {
     )
   }
 
-  protected def traitSerializationTrees(traitName: String, children: Vector[NamedItem]): Vector[Tree] = {
-    if (children.length > 0) {
-      Vector(
-        DEF("writeTo", UnitClass) withParams(PARAM("out", CodedOutputStreamClass)),
-        DEF("getSerializedSize", IntClass),
-        DEF("toByteArray", arrayType(ByteClass))
+  protected def traitChildSerializationTrees(packageName: String, name: String, attributes: Vector[Attribute]): Vector[Tree] = {
+    val sortedAttributes = attributes.sortBy(_.id)
+
+    val writers: Vector[Tree] = sortedAttributes map { attr =>
+      writer(attr.id, attr.name, attr.typ)
+    } flatten
+
+    val sizeComputers: Vector[Tree] =
+      if (sortedAttributes.length > 0) {
+        sortedAttributes map { attr =>
+          PAREN(
+            computer(attr.id, attr.name, attr.typ)
+          )
+        }
+      } else {
+        Vector(LIT(0))
+      }
+
+    Vector(
+      PROC("childWriteTo") withParams(PARAM("out", CodedOutputStreamClass)) := BLOCK(writers),
+      DEF("childGetSerializedSize", IntClass) := BLOCK(INFIX_CHAIN("+", sizeComputers)),
+      DEF("childToByteArray", arrayType(ByteClass)) := BLOCK(
+        VAL("res") := NEW(arrayType(ByteClass), REF("childGetSerializedSize")),
+        VAL("out") := CodedOutputStreamClass DOT("newInstance") APPLY(REF("res")),
+        REF("childWriteTo") APPLY(REF("out")),
+        REF("out") DOT("checkNoSpaceLeft") APPLY(),
+        REF("res")
       )
-    } else {
-      Vector.empty
-    }
+    )
+  }
+
+  protected def traitSerializationTrees(traitName: String, children: Vector[NamedItem]): Vector[Tree] = {
+    Vector(
+      DEF("writeTo", UnitClass) withParams(PARAM("out", CodedOutputStreamClass)) withFlags(Flags.FINAL) := BLOCK(
+        REF("out") DOT("writeInt32") APPLY(LIT(1), REF("header")),
+        REF("out") DOT("writeByteArray") APPLY(LIT(2), REF("childToByteArray"))
+      ),
+      DEF("getSerializedSize", IntClass) withFlags(Flags.FINAL) := BLOCK(
+        VAL("headerSizeWithTag") := CodedOutputStream DOT("computeInt32Size") APPLY(LIT(1), REF("header")),
+        VAL("childTagSize") := CodedOutputStream DOT("computeTagSize") APPLY(LIT(2)),
+        VAL("childSerializedSize") := REF("childGetSerializedSize"),
+        VAL("childSizeWithoutTag") := INFIX_CHAIN("+", Seq(
+          CodedOutputStream DOT("computeRawVarint32Size") APPLY(REF("childSerializedSize")),
+          REF("childSerializedSize")
+        )),
+        INFIX_CHAIN("+", Seq(REF("headerSizeWithTag"), REF("childTagSize"), REF("childSizeWithoutTag")))
+      ),
+      DEF("toByteArray", arrayType(ByteClass)) withFlags(Flags.FINAL) := BLOCK(
+        VAL("res") := NEW(arrayType(ByteClass), REF("getSerializedSize")),
+        VAL("out") := CodedOutputStreamClass DOT("newInstance") APPLY(REF("res")),
+        REF("writeTo") APPLY(REF("out")),
+        REF("out") DOT("checkNoSpaceLeft") APPLY(),
+        REF("res")
+      ),
+      DEF("childWriteTo", UnitClass) withParams(PARAM("out", CodedOutputStreamClass)),
+      DEF("childGetSerializedSize", IntClass),
+      DEF("childToByteArray", arrayType(ByteClass))
+    )
   }
 }
