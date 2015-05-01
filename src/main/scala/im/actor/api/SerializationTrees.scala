@@ -120,7 +120,7 @@ trait SerializationTrees extends TreeHelpers {
       }
 
     Vector(
-      PROC("writeTo") withParams(PARAM("out", CodedOutputStreamClass)) := BLOCK(writers),
+      DEF("writeTo", UnitClass) withParams(PARAM("out", CodedOutputStreamClass)) := BLOCK(writers),
       DEF("getSerializedSize", IntClass) := BLOCK(INFIX_CHAIN("+", sizeComputers)),
       DEF("toByteArray", arrayType(ByteClass)) := BLOCK(
         VAL("res") := NEW(arrayType(ByteClass), REF("getSerializedSize")),
@@ -151,7 +151,7 @@ trait SerializationTrees extends TreeHelpers {
       }
 
     Vector(
-      PROC("childWriteTo") withParams(PARAM("out", CodedOutputStreamClass)) := BLOCK(writers),
+      DEF("childWriteTo", UnitClass) withParams(PARAM("out", CodedOutputStreamClass)) := BLOCK(writers),
       DEF("childGetSerializedSize", IntClass) := BLOCK(INFIX_CHAIN("+", sizeComputers)),
       DEF("childToByteArray", arrayType(ByteClass)) := BLOCK(
         VAL("res") := NEW(arrayType(ByteClass), REF("childGetSerializedSize")),
