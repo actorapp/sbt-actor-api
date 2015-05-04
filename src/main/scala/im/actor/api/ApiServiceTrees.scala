@@ -9,10 +9,10 @@ trait ApiServiceTrees extends TreeHelpers {
   val baseServiceTrees: Vector[Tree] = {
     Vector(
       TRAITDEF("Service") := BLOCK(
-        TYPEVAR("HandleResult") := REF("\\/") APPLYTYPE(
+        TYPEVAR("HandleResult") withFlags(Flags.PROTECTED) := REF("\\/") APPLYTYPE(
           "RpcError",
           "RpcOk"),
-        TYPEVAR("HandlerResult[A <: RpcResponse]") := REF("\\/") APPLYTYPE(
+        TYPEVAR("HandlerResult[A <: RpcResponse]") withFlags(Flags.PROTECTED) := REF("\\/") APPLYTYPE(
           "RpcError",
           "A"),
         VAL("handleRequestPartial", valueCache("PartialFunction[RpcRequest, ClientData => Future[HandleResult]]"))
