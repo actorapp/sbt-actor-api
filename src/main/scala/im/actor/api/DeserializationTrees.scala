@@ -10,7 +10,7 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
     PARAM("partialMessage", valueCache("Any"))
   )
 
-  private def partialTypeDef(packageName: String, name: String, attributes: Vector[Attribute]): Option[Vector[Tree]] = {
+  private def partialTypeDef(name: String, attributes: Vector[Attribute]): Option[Vector[Tree]] = {
     def partialAttrType(typ: Types.AttributeType): Type = typ match {
       case Types.Int32 => optionType(IntClass)
       case Types.Int64 => optionType(LongClass)
@@ -107,6 +107,15 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
             )
           case typ =>
             val optAttr = f"opt${attr.name}%s"
+
+            /*
+            // FIXME: terrible hack to support buggy clients who don't write extType
+            val optAttrOrDefault = attr.name match {
+              case "ext" => REF("Some") APPLY(REF(optAttr) DOT("getOrElse") APPLY(LIT(0)))
+              case _ => REF(optAttr)
+            }
+            */
+
             (
               params :+ PARAM(optAttr, partialAttrType(attr.typ)).tree,
               forExprs :+ (VALFROM(attr.name) := REF(optAttr))
@@ -160,185 +169,68 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
   }
 
   protected def traitDeserializationTrees(traitName: String, children: Vector[NamedItem]): Vector[Tree] = {
-    if (children.length > 0) {
-      val parseFromDef = DEF("parseFrom", eitherType("Any", valueCache(traitName))) withParams(
-        PARAM("in", valueCache("com.google.protobuf.CodedInputStream")),
-        PARAM("ext", IntClass)
-      ) := BLOCK(
-        REF("ext") MATCH (
-          children map(c => (c, c.traitExt)) map {
-            case (child, Some(TraitExt(_, ext))) =>
-            CASE(LIT(ext)) ==> (
-              REF("Refs") DOT(child.name) DOT("parseFrom") APPLY(REF("in"))
-            )
+    val attributes = Vector(
+      Attribute(Types.Int32, 1, "header"),
+      Attribute(Types.Bytes, 2, "body")
+    )
 
-            case _ =>
-              throw new Exception("No trait ext in trait child")
+    val parseUnitName = s"Parsed$traitName"
+
+    val typeDef = CASECLASSDEF(parseUnitName) withParams(PARAM("header", IntClass), PARAM("body", arrayType(ByteClass)))
+    val pTypeDef = partialTypeDef(parseUnitName, attributes).get
+
+    val parseFromDef = {
+      val cases = fieldCases(attributes) ++ defaultFieldCases
+
+      val partialTypeRef = valueCache("Partial")
+      val parseDefType = eitherType("Partial", valueCache(parseUnitName))
+
+      DEF("parseFrom", eitherType("Any", valueCache(traitName))) withParams(PARAM("in", valueCache("com.google.protobuf.CodedInputStream"))) := BLOCK(
+        DEF("doParse", partialTypeRef)
+          withParams(PARAM("partialMessage", partialTypeRef)) := BLOCK(
+          (REF("in") DOT("readTag()")) MATCH (cases)
+        ),
+
+        VAL("partialMessage") := REF("doParse") APPLY(partialTypeRef DOT("empty")),
+
+        VAL("parsed") := REF("partialMessage") DOT("toComplete") DOT("map") APPLY(REF("Right") APPLY(WILDCARD)) DOT("getOrElse") APPLY(BLOCK(
+          REF("Left") APPLY(REF("partialMessage"))
+        )),
+
+        REF("parsed") MATCH(
+          CASE(REF("Left") APPLY(REF("x"))) ==> (REF("Left") APPLY(REF("x"))),
+          if (children.nonEmpty) {
+            CASE(REF("Right") APPLY (REF(parseUnitName) APPLY(REF("header"), REF("bodyBytes")))) ==> (
+              REF("header") MATCH (
+                (children map (c => (c, c.traitExt)) map {
+                  case (child, Some(TraitExt(_, key))) =>
+                    CASE(LIT(key)) ==>
+                      BLOCK(
+                        VAL("stream") := valueCache("com.google.protobuf.CodedInputStream") DOT ("newInstance") APPLY (REF("bodyBytes")),
+                        REF("Refs") DOT (child.name) DOT ("parseFrom") APPLY (REF("stream"))
+                      )
+                  case _ =>
+                    throw new Exception("No trait key in trait child")
+                })
+                )
+              )
+          } else {
+            CASE(REF("_")) ==> THROW(NEW(REF("ParseException") APPLY(LIT("Not implemented"))))
           }
         )
       )
-
-      Vector(parseFromDef)
-    } else {
-      Vector.empty
     }
+
+    pTypeDef ++ Vector(typeDef.tree, parseFromDef)
   }
 
-  protected def deserializationTrees(packageName: String, name: String, attributes: Vector[Attribute]): Vector[Tree] = {
-    def simpleReader(fn: String) = REF("in") DOT(fn) APPLY()
-
-    def reader(typ: Types.AttributeType): Tree = typ match {
-      case Types.Int32 => simpleReader("readInt32")
-      case Types.Int64 => simpleReader("readInt64")
-      case Types.Bool => simpleReader("readBool")
-      case Types.Double => simpleReader("readDouble")
-      case Types.String => simpleReader("readString")
-      case Types.Bytes => simpleReader("readByteArray")
-      case Types.Opt(optAttrType) =>
-        SOME(reader(optAttrType))
-      case Types.List(Types.Struct(structName)) =>
-        BLOCK(
-          REF("Refs") DOT(structName) DOT("parseFrom") APPLY(REF("in"))
-        )
-      case Types.List(listAttrType) =>
-        BLOCK(
-          VAL("length") := REF("in") DOT("readRawVarint32") APPLY(),
-          VAL("limit") := REF("in") DOT("pushLimit") APPLY(REF("length")),
-
-          VAL("values") := (REF("Iterator").DOT("continually"). APPLY(
-            reader(listAttrType)
-          ).DOT("takeWhile").APPLY( LAMBDA(PARAM(WILDCARD)) ==>
-            (REF("in") DOT("getBytesUntilLimit") APPLY()) INT_> LIT(0)
-          ).DOT("toVector")),
-
-          REF("in") DOT("popLimit") APPLY(REF("limit")),
-
-          REF("values")
-        )
-      case Types.Struct(structName) =>
-        BLOCK(
-          VAL("length") := REF("in") DOT("readRawVarint32") APPLY(),
-          VAL("oldLimit") := REF("in") DOT("pushLimit") APPLY(REF("length")),
-
-          VAL("message") := REF("Refs") DOT(structName) DOT("parseFrom") APPLY(REF("in")),
-
-          REF("in") DOT("checkLastTagWas") APPLY(LIT(0)),
-          REF("in") DOT("popLimit") APPLY(REF("oldLimit")),
-
-          REF("message")
-        )
-      case Types.Enum(enumName) =>
-        BLOCK(
-          REF("Refs") DOT(enumName) APPLY(
-            REF("in") DOT("readEnum") APPLY()
-          )
-        )
-      case Types.Trait(traitName) =>
-        val extTypeField = extTypeName(name)
-
-        REF("partialMessage") DOT(f"opt$extTypeField%s") MATCH(
-          CASE(REF("Some") APPLY(REF("extType"))) ==> BLOCK(
-            VAL("bytes") := REF("in") DOT("readByteArray") APPLY(),
-
-            VAL("stream") := valueCache("com.google.protobuf.CodedInputStream") DOT("newInstance") APPLY(REF("bytes")),
-
-            REF("Refs") DOT(traitName) DOT("parseFrom") APPLY(REF("stream"), REF("extType"))
-          ),
-          CASE(REF("None")) ==> THROW(NEW(REF("ParseException") APPLY(LIT("Trying to parse trait but extType is missing"))))
-        )
-      case attr =>
-        BLOCK().withComment(attr.toString)
-    }
-
-    def readCaseBody(attrName: String, attrType: Types.AttributeType, appendOp: Option[String]): Tree = {
-      REF("doParse") APPLY(
-        REF("partialMessage") DOT("copy") APPLY(
-          appendOp match {
-            case Some(op) =>
-              attrType match {
-                case Types.List(Types.Struct(_)) =>
-                  val eithersName = f"eithers$attrName%s"
-                  REF(eithersName) := REF("partialMessage") DOT(eithersName) INFIX(op) APPLY(reader(attrType))
-                case _ => REF(attrName) := REF("partialMessage") DOT(attrName) INFIX(op) APPLY(reader(attrType))
-              }
-            case None =>
-              attrType match {
-                case Types.Struct(_) | Types.Trait(_) =>
-                  REF(f"either$attrName%s") := reader(attrType)
-                case Types.Opt(Types.Struct(_) | Types.Trait(_)) =>
-                  REF(f"opteither$attrName%s") := SOME(reader(attrType))
-                case Types.List(Types.Struct(_)) =>
-                  REF(f"eithers$attrName%s") := reader(attrType)
-                case _ =>
-                  REF(f"opt$attrName%s") := REF("Some") APPLY(reader(attrType))
-              }
-          }
-        )
-      )
-    }
-
-    @annotation.tailrec
-    def wireType(attrType: Types.AttributeType): Int = {
-      attrType match {
-        case Types.Int32 | Types.Int64 | Types.Bool => WireFormat.WIRETYPE_VARINT
-        case Types.String | Types.Bytes => WireFormat.WIRETYPE_LENGTH_DELIMITED
-        case Types.Double => WireFormat.WIRETYPE_FIXED64
-        case Types.Opt(optAttrType) =>
-          wireType(optAttrType)
-        case Types.List(listAttrType) =>
-          wireType(listAttrType)
-        case Types.Enum(_) =>
-          WireFormat.WIRETYPE_VARINT
-        case Types.Struct(_) | Types.Trait(_) =>
-          WireFormat.WIRETYPE_LENGTH_DELIMITED
-        case unsupported => throw new Exception(f"Unsupported wire type: $unsupported%s")
-      }
-    }
-
-    val optPartialTypeDef = partialTypeDef(packageName, name, attributes)
+  protected def deserializationTrees(name: String, attributes: Vector[Attribute]): Vector[Tree] = {
+    val optPartialTypeDef = partialTypeDef(name, attributes)
 
     val parseDef =
       optPartialTypeDef match {
         case Some(_) =>
-          val fieldCases: Vector[Vector[CaseDef]] = attributes map { attr =>
-            val baseCaseExpr = CASE(LIT((attr.id << 3) | wireType(attr.typ)))
-
-            attr.typ match {
-              case typ @ Types.List(listAttrType) =>
-                if (listAttrType.isInstanceOf[Types.Struct]) {
-                  val baseCase = baseCaseExpr ==> BLOCK(
-                    readCaseBody(attr.name, typ, Some(":+"))
-                  )
-
-                  Vector(baseCase)
-                } else {
-                  val baseCase = baseCaseExpr ==> BLOCK(
-                    readCaseBody(attr.name, listAttrType, Some(":+"))
-                  )
-
-                  val listCase = CASE(LIT((attr.id << 3) | WireFormat.WIRETYPE_LENGTH_DELIMITED)) ==> BLOCK(
-                    readCaseBody(attr.name, attr.typ, Some("++"))
-                  )
-
-                  Vector(baseCase, listCase)
-                }
-
-              case attrType =>
-                Vector(baseCaseExpr ==> BLOCK(
-                  readCaseBody(attr.name, attr.typ, None)
-                ))
-            }
-          }
-
-          val cases = fieldCases.flatten ++ Vector(
-            CASE(LIT(0)) ==> REF("partialMessage"),
-            CASE(REF("default")) ==>
-                (
-                  IF (REF("in") DOT("skipField") APPLY(REF("default")) ANY_== LIT(true)) THEN (
-                    REF("doParse") APPLY(REF("partialMessage"))
-                  ) ELSE REF("partialMessage")
-                )
-          )
+          val cases = fieldCases(attributes) ++ defaultFieldCases
 
           val partialTypeRef = valueCache("Partial")
           val parseDefType = eitherType("Partial", valueCache(name))
@@ -386,6 +278,162 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
       case None =>
         Vector(parseDef)
     }
-    //optPartialTypeDef.getOrElse((Vector.empty, Vector.empty)) ++ Vector(parseDef)// ++ witnesses :+ parseDef
+  }
+
+  private def simpleReader(fn: String) = REF("in") DOT(fn) APPLY()
+
+  private def reader(typ: Types.AttributeType): Tree = typ match {
+    case Types.Int32 => simpleReader("readInt32")
+    case Types.Int64 => simpleReader("readInt64")
+    case Types.Bool => simpleReader("readBool")
+    case Types.Double => simpleReader("readDouble")
+    case Types.String => simpleReader("readString")
+    case Types.Bytes => simpleReader("readByteArray")
+    case Types.Opt(optAttrType) =>
+      SOME(reader(optAttrType))
+    case Types.List(Types.Struct(structName)) =>
+      BLOCK(
+        VAL("length") := REF("in") DOT("readRawVarint32") APPLY(),
+        VAL("oldLimit") := REF("in") DOT("pushLimit") APPLY(REF("length")),
+
+        VAL("res") := REF("Refs") DOT(structName) DOT("parseFrom") APPLY(REF("in")),
+
+        REF("in") DOT("checkLastTagWas") APPLY(LIT(0)),
+        REF("in") DOT("popLimit") APPLY(REF("oldLimit")),
+
+        REF("res")
+      )
+    case Types.List(listAttrType) =>
+      BLOCK(
+        VAL("length") := REF("in") DOT("readRawVarint32") APPLY(),
+        VAL("limit") := REF("in") DOT("pushLimit") APPLY(REF("length")),
+
+        VAL("values") := (REF("Iterator").DOT("continually"). APPLY(
+          reader(listAttrType)
+        ).DOT("takeWhile").APPLY( LAMBDA(PARAM(WILDCARD)) ==>
+          (REF("in") DOT("getBytesUntilLimit") APPLY()) INT_> LIT(0)
+          ).DOT("toVector")),
+
+        REF("in") DOT("popLimit") APPLY(REF("limit")),
+
+        REF("values")
+      )
+    case Types.Struct(structName) =>
+      BLOCK(
+        VAL("length") := REF("in") DOT("readRawVarint32") APPLY(),
+        VAL("oldLimit") := REF("in") DOT("pushLimit") APPLY(REF("length")),
+
+        VAL("message") := REF("Refs") DOT(structName) DOT("parseFrom") APPLY(REF("in")),
+
+        REF("in") DOT("checkLastTagWas") APPLY(LIT(0)),
+        REF("in") DOT("popLimit") APPLY(REF("oldLimit")),
+
+        REF("message")
+      )
+    case Types.Enum(enumName) =>
+      BLOCK(
+        REF("Refs") DOT(enumName) APPLY(
+          REF("in") DOT("readEnum") APPLY()
+          )
+      )
+    case Types.Trait(traitName) =>
+      BLOCK(
+        VAL("bytes") := REF("in") DOT("readByteArray") APPLY(),
+        VAL("stream") := valueCache("com.google.protobuf.CodedInputStream") DOT("newInstance") APPLY(REF("bytes")),
+        REF("Refs") DOT(traitName) DOT("parseFrom") APPLY(REF("stream"))
+      )
+    case attr =>
+      BLOCK().withComment(attr.toString)
+  }
+
+  private def readCaseBody(attrName: String, attrType: Types.AttributeType, appendOp: Option[String]): Tree = {
+    REF("doParse") APPLY(
+      REF("partialMessage") DOT("copy") APPLY(
+        appendOp match {
+          case Some(op) =>
+            attrType match {
+              case Types.List(Types.Struct(_)) =>
+                val eithersName = f"eithers$attrName%s"
+                REF(eithersName) := REF("partialMessage") DOT(eithersName) INFIX(op) APPLY(reader(attrType))
+              case _ => REF(attrName) := REF("partialMessage") DOT(attrName) INFIX(op) APPLY(reader(attrType))
+            }
+          case None =>
+            attrType match {
+              case Types.Struct(_) | Types.Trait(_) =>
+                REF(f"either$attrName%s") := reader(attrType)
+              case Types.Opt(Types.Struct(_) | Types.Trait(_)) =>
+                REF(f"opteither$attrName%s") := SOME(reader(attrType))
+              case Types.List(Types.Struct(_)) =>
+                REF(f"eithers$attrName%s") := reader(attrType)
+              case _ =>
+                REF(f"opt$attrName%s") := REF("Some") APPLY(reader(attrType))
+            }
+        }
+        )
+      )
+  }
+
+  @annotation.tailrec
+  private def wireType(attrType: Types.AttributeType): Int = {
+    attrType match {
+      case Types.Int32 | Types.Int64 | Types.Bool => WireFormat.WIRETYPE_VARINT
+      case Types.String | Types.Bytes => WireFormat.WIRETYPE_LENGTH_DELIMITED
+      case Types.Double => WireFormat.WIRETYPE_FIXED64
+      case Types.Opt(optAttrType) =>
+        wireType(optAttrType)
+      case Types.List(listAttrType) =>
+        wireType(listAttrType)
+      case Types.Enum(_) =>
+        WireFormat.WIRETYPE_VARINT
+      case Types.Struct(_) | Types.Trait(_) =>
+        WireFormat.WIRETYPE_LENGTH_DELIMITED
+      case unsupported => throw new Exception(f"Unsupported wire type: $unsupported%s")
+    }
+  }
+
+  private def fieldCases(attributes: Vector[Attribute]): Vector[CaseDef] = {
+    val cases = attributes map { attr =>
+      val baseCaseExpr = CASE(LIT((attr.id << 3) | wireType(attr.typ)))
+
+      attr.typ match {
+        case typ @ Types.List(listAttrType) =>
+          if (listAttrType.isInstanceOf[Types.Struct]) {
+            val baseCase = baseCaseExpr ==> BLOCK(
+              readCaseBody(attr.name, typ, Some(":+"))
+            )
+
+            Vector(baseCase)
+          } else {
+            val baseCase = baseCaseExpr ==> BLOCK(
+              readCaseBody(attr.name, listAttrType, Some(":+"))
+            )
+
+            val listCase = CASE(LIT((attr.id << 3) | WireFormat.WIRETYPE_LENGTH_DELIMITED)) ==> BLOCK(
+              readCaseBody(attr.name, attr.typ, Some("++"))
+            )
+
+            Vector(baseCase, listCase)
+          }
+
+        case attrType =>
+          Vector(baseCaseExpr ==> BLOCK(
+            readCaseBody(attr.name, attr.typ, None)
+          ))
+      }
+    }
+
+    cases.flatten
+  }
+
+  private val defaultFieldCases: Vector[CaseDef] = {
+    Vector(
+      CASE(LIT(0)) ==> REF("partialMessage"),
+      CASE(REF("default")) ==>
+        (
+          IF (REF("in") DOT("skipField") APPLY(REF("default")) ANY_== LIT(true)) THEN (
+            REF("doParse") APPLY(REF("partialMessage"))
+            ) ELSE REF("partialMessage")
+          )
+    )
   }
 }

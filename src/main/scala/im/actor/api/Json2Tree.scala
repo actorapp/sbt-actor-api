@@ -42,17 +42,20 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
 
     val globalRefsTree: Tree = OBJECTDEF("Refs") withFlags (PRIVATEWITHIN("api")) := BLOCK(globalRefsV.flatten)
 
-    val bserializableDef: Tree = TRAITDEF("BSerializable") := BLOCK(
+    val bserializableDef: Tree = TRAITDEF("BSerializable") withParents (valueCache("java.io.Serializable")) := BLOCK(
       DEF("toByteArray", arrayType(ByteClass)),
       DEF("getSerializedSize", IntClass)
     )
 
-    val updateBoxDef: Tree = TRAITDEF("UpdateBox")
-    val updateDef: Tree = TRAITDEF("Update") withFlags(Flags.SEALED) withParents (valueCache("BSerializable")) := BLOCK(
+    val containsHeaderDef: Tree = TRAITDEF("ContainsHeader") := BLOCK(
       VAL("header", IntClass)
     )
+
+    val updateBoxDef: Tree = TRAITDEF("UpdateBox") withFlags(Flags.SEALED) withParents(valueCache("BSerializable"), valueCache("ContainsHeader"))
+
+    val updateDef: Tree = TRAITDEF("Update") withFlags(Flags.SEALED) withParents (valueCache("BSerializable"), valueCache("ContainsHeader"))
     val requestDef: Tree = CASECLASSDEF("Request") withParams (PARAM("body", valueCache("RpcRequest")))
-    val requestObjDef: Tree = OBJECTDEF("Request") := BLOCK(
+    val requestObjDef: Tree = OBJECTDEF("Request") withParents(valueCache("ContainsHeader")) := BLOCK(
       VAL("header") := LIT(1)
     )
 
@@ -78,6 +81,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       globalRefsTree,
       parseExceptionDef,
       bserializableDef,
+      containsHeaderDef,
       updateBoxDef,
       errorDataDef,
       rpcResultDef,
@@ -94,8 +98,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     val tree = PACKAGE("im.actor.api.rpc") := BLOCK(
       Vector(
         IMPORT("scala.concurrent._"),
-        IMPORT("scalaz._"),
-        IMPORT("scalaz.std.either._")
+        IMPORT("scalaz._")
       ) ++
         packageTrees ++ baseTrees :+ codecTrees(packages)
     )
@@ -209,20 +212,20 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     )
 
     val deserTrees = deserializationTrees(
-      packageName,
       className,
       rpc.attributes
     )
 
-    val objectTrees = Vector(headerDef, responseRefDef, responseTypeDef) ++ deserTrees
+    val objectTrees = Vector(responseRefDef, responseTypeDef) ++ deserTrees
 
     val (globalRequestRefs, requestTrees) = classWithCompanion(
       packageName,
       className,
-      Vector(valueCache(f"${packageName.capitalize}%sRpcRequest")),
+      Vector(valueCache(f"${packageName.capitalize}%sRpcRequest"), valueCache("ContainsHeader")),
       params,
       classTrees,
-      objectTrees
+      objectTrees,
+      Vector(headerDef)
     )
 
     (
@@ -250,9 +253,9 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       className,
       resp.attributes
     )
-    val deserTrees = deserializationTrees(packageName, className, resp.attributes)
+    val deserTrees = deserializationTrees(className, resp.attributes)
 
-    classWithCompanion(packageName, className, Vector(valueCache("RpcResponse")), params, serTrees, Vector(headerDef) ++ deserTrees)
+    classWithCompanion(packageName, className, Vector(valueCache("RpcResponse")), params, serTrees, deserTrees, Vector(headerDef))
   }
 
   private def traitItemTrees(packageName: String, trai: Trait, children: Vector[NamedItem]): (Vector[Tree], Vector[Tree]) = {
@@ -269,17 +272,13 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       traitDeserializationTrees(trai.name, children)
     )
 
-    (
-      globalRefs,
-      Vector(traitDef, objDef)
-      )
+    (globalRefs, Vector(traitDef, objDef))
   }
 
   private def updateItemTrees(packageName: String, update: Update): (Vector[Tree], Vector[Tree]) = {
     val className = f"Update${update.name}%s"
     val params = paramsTrees(update.attributes)
     val headerDef = dec2headerDef(update.header)
-    val headerRef = VAL("header") := REF(className) DOT ("header")
 
     val serTrees = serializationTrees(
       packageName,
@@ -288,41 +287,51 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     )
 
     val deserTrees = deserializationTrees(
-      packageName,
       className,
       update.attributes
     )
 
-    classWithCompanion(packageName, className, Vector(valueCache("Update")), params, serTrees :+ headerRef, deserTrees :+ headerDef)
+    classWithCompanion(packageName, className, Vector(valueCache("Update")), params, serTrees, deserTrees, Vector(headerDef))
   }
 
   private def updateBoxItemTrees(packageName: String, ub: UpdateBox): (Vector[Tree], Vector[Tree]) = {
     val params = paramsTrees(ub.attributes)
 
-    if (params.isEmpty) {
-      (
-        Vector(VAL(ub.name) := REF(f"$packageName%s.${ub.name}%s")),
-        Vector(CASEOBJECTDEF(ub.name) withParents (valueCache("UpdateBox")))
-        )
-    } else {
-      (
-        Vector(TYPEVAR(ub.name) := REF(f"$packageName%s.${ub.name}%s")),
-        Vector(CASECLASSDEF(ub.name) withParents (valueCache("UpdateBox")) withParams (params))
-        )
-    }
+    val serTrees = serializationTrees(
+      packageName,
+      ub.name,
+      ub.attributes
+    )
+
+    val deserTrees = deserializationTrees(
+      ub.name,
+      ub.attributes
+    )
+
+    val headerDef = dec2headerDef(ub.header)
+
+    classWithCompanion(packageName, ub.name, Vector(valueCache("UpdateBox")), params, serTrees, deserTrees, Vector(headerDef))
   }
 
   private def structItemTrees(packageName: String, struct: Struct): TreesChildren = {
     val params = paramsTrees(struct.attributes)
 
-    val serTrees = serializationTrees(
-      packageName,
-      struct.name,
-      struct.attributes
-    )
+    val serTrees =
+      if (struct.`trait`.isEmpty) {
+        serializationTrees(
+          packageName,
+          struct.name,
+          struct.attributes
+        )
+      } else {
+        traitChildSerializationTrees(
+          packageName,
+          struct.name,
+          struct.attributes
+        )
+      }
 
     val deserTrees = deserializationTrees(
-      packageName,
       struct.name,
       struct.attributes
     )
@@ -340,7 +349,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
         (parents, Vector.empty)
     }
 
-    classWithCompanion(packageName, struct.name, parents, params, serTrees ++ traitImplTrees, deserTrees) match {
+    classWithCompanion(packageName, struct.name, parents, params, serTrees ++ traitImplTrees, deserTrees, Vector.empty) match {
       case (globalRefs, trees) =>
         (globalRefs, trees, Vector(struct))
     }
@@ -385,7 +394,8 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
                                  parents: Vector[Type],
                                  params: Vector[ValDef],
                                  classTrees: Vector[Tree],
-                                 objectTrees: Vector[Tree]): (Vector[Tree], Vector[Tree]) = {
+                                 objectTrees: Vector[Tree],
+                                 commonTrees: Vector[Tree]): (Vector[Tree], Vector[Tree]) = {
     val ref = REF(f"$packageName%s.$name%s")
     val objRef = VAL(name) := ref
 
@@ -400,7 +410,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
             classTrees
           ),
           CASEOBJECTDEF(name) withParents (valueCache(name)) := BLOCK(
-            objectTrees
+            objectTrees ++ commonTrees
           )
         )
         )
@@ -411,8 +421,8 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
           objRef
         ),
         Vector(
-          CASECLASSDEF(name) withParents (parents) withParams (params) := BLOCK(classTrees),
-          OBJECTDEF(name) := BLOCK(objectTrees)
+          CASECLASSDEF(name) withParents (parents) withParams (params) := BLOCK(classTrees ++ commonTrees),
+          OBJECTDEF(name) := BLOCK(objectTrees ++ commonTrees)
         )
         )
     }

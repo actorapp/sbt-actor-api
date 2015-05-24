@@ -9,10 +9,10 @@ trait ApiServiceTrees extends TreeHelpers {
   val baseServiceTrees: Vector[Tree] = {
     Vector(
       TRAITDEF("Service") := BLOCK(
-        TYPEVAR("HandleResult") := REF("\\/") APPLYTYPE(
+        TYPEVAR("HandleResult") withFlags(Flags.PROTECTED) := REF("\\/") APPLYTYPE(
           "RpcError",
           "RpcOk"),
-        TYPEVAR("HandlerResult[A <: RpcResponse]") := REF("\\/") APPLYTYPE(
+        TYPEVAR("HandlerResult[A <: RpcResponse]") withFlags(Flags.PROTECTED) := REF("\\/") APPLYTYPE(
           "RpcError",
           "A"),
         VAL("handleRequestPartial", valueCache("PartialFunction[RpcRequest, ClientData => Future[HandleResult]]"))
@@ -50,7 +50,7 @@ trait ApiServiceTrees extends TreeHelpers {
               case Types.Double => DoubleClass
               case Types.String => StringClass
               case Types.Bytes => arrayType(ByteClass)
-              case Types.Enum(enumName) => valueCache(enumName)
+              case Types.Enum(enumName) => valueCache(f"$enumName%s.$enumName%s")
               case Types.Opt(optAttrType) => optionType(scalaTyp(optAttrType))
               case Types.List(listAttrType) => vectorType(scalaTyp(listAttrType))
               case Types.Struct(structName) => valueCache(f"Refs.$structName%s")
