@@ -42,7 +42,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
 
     val globalRefsTree: Tree = OBJECTDEF("Refs") withFlags (PRIVATEWITHIN("api")) := BLOCK(globalRefsV.flatten)
 
-    val bserializableDef: Tree = TRAITDEF("BSerializable") := BLOCK(
+    val bserializableDef: Tree = TRAITDEF("BSerializable") withParents (valueCache("java.io.Serializable")) := BLOCK(
       DEF("toByteArray", arrayType(ByteClass)),
       DEF("getSerializedSize", IntClass)
     )
