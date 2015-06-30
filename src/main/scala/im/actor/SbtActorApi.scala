@@ -41,19 +41,17 @@ object SbtActorApi extends AutoPlugin {
   private def compiledFileDir(targetDir: File): File =
     targetDir / "main" / "scala"
 
-  private def compiledFile(targetDir: File): File =
-    compiledFileDir(targetDir) / "ActorApi.scala"
+  private def compiledFile(targetDir: File, name: String): File =
+    compiledFileDir(targetDir) / s"${name}.scala"
 
   private def clean(targetDir: File, streams: TaskStreams): Seq[File] = {
     val log = streams.log
 
     log.info("Cleaning actor schema")
 
-    val file = compiledFile(targetDir)
-    if (file.exists())
-      file.delete()
+    IO.delete(targetDir)
 
-    Seq(file)
+    Seq(targetDir)
   }
 
   private def generate(srcDir: File, targetDir: File, classpath: Classpath, javaHome: Option[File], streams: TaskStreams): Seq[File] = {
@@ -76,12 +74,16 @@ object SbtActorApi extends AutoPlugin {
 
           val src = input / "actor.json"
           if (src.exists()) {
-            val tree = (new Json2Tree(IO.read(src))).convert()
-            val targetFile = compiledFile(targetDir)
+            val sources = (new Json2Tree(IO.read(src))).convert()
 
-            log.info(f"Generated ActorApi.scala $targetFile%s")
+            sources foreach {
+              case (name, source) =>
+                val targetFile = compiledFile(targetDir, name)
 
-            IO.write(targetFile, tree)
+                log.info(f"Generated ActorApi $targetFile%s")
+
+                IO.write(targetFile, source)
+            }
           } else {
             log.info(f"no actor.json file in $input%s")
           }

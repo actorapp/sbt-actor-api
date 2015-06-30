@@ -19,7 +19,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     case _ => deserializationError("Aliases should be JsArray")
   }
 
-  def convert(): String = {
+  def convert(): Map[String, String] = {
     val packages: Vector[(String, Vector[Item])] = rootObj.fields("sections").convertTo[JsArray].elements map {
       case obj: JsObject =>
         obj.fields("package") match {
@@ -32,10 +32,10 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
         throw new Exception("section is not a JsObject")
     }
 
-    val refsTreesSeq: Vector[(Vector[Tree], Tree)] = packages map {
+    val refsTreesSeq: Vector[(Vector[Tree], (String, Tree))] = packages map {
       case (packageName, items) =>
         val (globalRefs, block) = itemsBlock(packageName, items)
-        (globalRefs, PACKAGE(packageName) := block)
+        (globalRefs, (packageName -> (PACKAGE(packageName) := block)))
     }
 
     val (globalRefsV, packageTrees) = refsTreesSeq.unzip
@@ -51,9 +51,9 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       VAL("header", IntClass)
     )
 
-    val updateBoxDef: Tree = TRAITDEF("UpdateBox") withFlags(Flags.SEALED) withParents(valueCache("BSerializable"), valueCache("ContainsHeader"))
+    val updateBoxDef: Tree = TRAITDEF("UpdateBox") withParents(valueCache("BSerializable"), valueCache("ContainsHeader"))
 
-    val updateDef: Tree = TRAITDEF("Update") withFlags(Flags.SEALED) withParents (valueCache("BSerializable"), valueCache("ContainsHeader"))
+    val updateDef: Tree = TRAITDEF("Update") withParents (valueCache("BSerializable"), valueCache("ContainsHeader"))
     val requestDef: Tree = CASECLASSDEF("Request") withParams (PARAM("body", valueCache("RpcRequest")))
     val requestObjDef: Tree = OBJECTDEF("Request") withParents(valueCache("ContainsHeader")) := BLOCK(
       VAL("header") := LIT(1)
@@ -95,14 +95,23 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       requestObjDef
     ) ++ baseServiceTrees
 
-    val tree = PACKAGE("im.actor.api.rpc") := BLOCK(
-      Vector(
-        IMPORT("scala.concurrent._"),
-        IMPORT("scalaz._")
-      ) ++
-        packageTrees ++ baseTrees :+ codecTrees(packages)
+    (
+      (packageTrees map {
+      case (p, t) => (p, Vector(t))
+      }) ++ Seq(
+        "Base" -> baseTrees,
+        "Codecs" -> Vector(codecTrees(packages)))
+      ).map {
+           case (name, trees) =>
+             (name, prettify(treeToString(withImports(Vector("scala.concurrent._", "scalaz._"), trees))))
+        }
+    .toMap
+  }
+
+  private def withImports(imports: Vector[String], trees: Vector[Tree]): Tree = {
+    PACKAGE("im.actor.api.rpc") := BLOCK(
+      (imports map (IMPORT(_))) ++ trees
     )
-    prettify(treeToString(tree))
   }
 
   private def items(jsonElements: Vector[JsValue]): Vector[Item] = {
