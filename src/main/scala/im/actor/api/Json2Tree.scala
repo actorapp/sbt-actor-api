@@ -154,7 +154,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       )
 
   private def itemsBlock(packageName: String, items: Vector[Item]): (Vector[Tree], Tree) = {
-    val requestTraitTree: Tree = TRAITDEF(f"${packageName.capitalize}%sRpcRequest") withParents (valueCache("RpcRequest"))
+    val requestTraitTree: Tree = TRAITDEF(f"${packageName.capitalize}%sRpcRequest") withParents (valueCache("RpcRequest")) withFlags(Flags.SEALED)
 
     val (globalRefs, trees, traits, allChildren): TreesTraitsChildren = items.foldLeft[TreesTraitsChildren](
       (Vector.empty, Vector.empty, Vector.empty, Vector.empty)
@@ -264,7 +264,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       VAL(trai.name) := REF(f"$packageName%s.${trai.name}%s")
     )
 
-    val traitDef = TRAITDEF(trai.name) := BLOCK(
+    val traitDef = TRAITDEF(trai.name) withFlags(Flags.SEALED) := BLOCK(
       traitSerializationTrees(trai.name, children) :+ VAL("header", IntClass).tree
     )
 
