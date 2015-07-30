@@ -183,7 +183,6 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
       val cases = fieldCases(attributes) ++ defaultFieldCases
 
       val partialTypeRef = valueCache("Partial")
-      val parseDefType = eitherType("Partial", valueCache(parseUnitName))
 
       DEF("parseFrom", eitherType("Any", valueCache(traitName))) withParams(PARAM("in", valueCache("com.google.protobuf.CodedInputStream"))) := BLOCK(
         DEF("doParse", partialTypeRef)
@@ -303,6 +302,8 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
 
         REF("res")
       )
+    case Types.List(Types.String) => reader(Types.String)
+    case Types.List(Types.Bytes) => reader(Types.Bytes)
     case Types.List(listAttrType) =>
       BLOCK(
         VAL("length") := REF("in") DOT("readRawVarint32") APPLY(),
@@ -377,16 +378,11 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
   private def wireType(attrType: Types.AttributeType): Int = {
     attrType match {
       case Types.Int32 | Types.Int64 | Types.Bool => WireFormat.WIRETYPE_VARINT
-      case Types.String | Types.Bytes => WireFormat.WIRETYPE_LENGTH_DELIMITED
       case Types.Double => WireFormat.WIRETYPE_FIXED64
-      case Types.Opt(optAttrType) =>
-        wireType(optAttrType)
-      case Types.List(listAttrType) =>
-        wireType(listAttrType)
-      case Types.Enum(_) =>
-        WireFormat.WIRETYPE_VARINT
-      case Types.Struct(_) | Types.Trait(_) =>
-        WireFormat.WIRETYPE_LENGTH_DELIMITED
+      case Types.Enum(_) => WireFormat.WIRETYPE_VARINT
+      case Types.String | Types.Bytes | Types.Struct(_) | Types.Trait(_) => WireFormat.WIRETYPE_LENGTH_DELIMITED
+      case Types.Opt(optAttrType) =>  wireType(optAttrType)
+      case Types.List(listAttrType) =>  wireType(listAttrType)
       case unsupported => throw new Exception(f"Unsupported wire type: $unsupported%s")
     }
   }
@@ -397,7 +393,7 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
 
       attr.typ match {
         case typ @ Types.List(listAttrType) =>
-          if (listAttrType.isInstanceOf[Types.Struct]) {
+          if (listAttrType.isInstanceOf[Types.Struct] || listAttrType.isInstanceOf[Types.Bytes.type] || listAttrType.isInstanceOf[Types.String.type]) {
             val baseCase = baseCaseExpr ==> BLOCK(
               readCaseBody(attr.name, typ, Some(":+"))
             )
