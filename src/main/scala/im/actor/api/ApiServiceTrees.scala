@@ -124,7 +124,7 @@ trait ApiServiceTrees extends TreeHelpers {
           REF("handleRequestPartial") APPLY(REF("request")) APPLY(REF("clientData"))
         )
 
-      val ecDef: Tree = VAL("ec", valueCache("ExecutionContext")) withFlags (Flags.IMPLICIT)
+      val ecDef: Tree = VAL("ec", valueCache("ExecutionContext")) withFlags (Flags.IMPLICIT, Flags.PROTECTED)
 
       Vector(
         TRAITDEF(f"${packageName.capitalize}Service")
