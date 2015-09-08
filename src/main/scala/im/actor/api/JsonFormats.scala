@@ -17,17 +17,19 @@ object Types {
   case object Bool extends AttributeType
   case object Bytes extends AttributeType
 
-  case class Struct(name: String) extends AttributeType
-  case class Enum(name: String) extends AttributeType
+  case class Struct(_name: String) extends AttributeType {
+    val name = ApiPrefix + _name
+  }
+  case class Enum(_name: String) extends AttributeType {
+    val name = ApiPrefix + _name
+  }
   case class List(typ: AttributeType) extends AttributeType
   case class Opt(typ: AttributeType) extends AttributeType
-  case class Trait(name: String) extends AttributeType
+  case class Trait(_name: String) extends AttributeType {
+    val name = ApiPrefix + _name
+  }
 
 }
-
-/*case class AttributeType(`type`: String, childType: Option[AttributeType]) {
-  val typ = `type`
-}*/
 
 case class Attribute(`type`: Types.AttributeType, id: Int, name: String) {
   val typ = `type`
@@ -62,10 +64,13 @@ case class RpcContent(header: Int, name: String, attributes: Vector[Attribute], 
   def traitExt = None
 }
 
-case class Trait(name: String) extends NamedItem {
+case class Trait(_name: String) extends NamedItem {
+  val name = ApiPrefix + _name
   def traitExt = None
 }
-case class TraitExt(name: String, key: Int)
+case class TraitExt(_name: String, key: Int) {
+  val name = ApiPrefix + _name
+}
 
 case class UpdateBox(name: String, header: Int, attributes: Vector[Attribute]) extends NamedItem {
   def traitExt = None
@@ -75,11 +80,13 @@ case class Update(name: String, header: Int, attributes: Vector[Attribute]) exte
   def traitExt = None
 }
 
-case class Struct(name: String, attributes: Vector[Attribute], `trait`: Option[TraitExt]) extends NamedItem {
+case class Struct(_name: String, attributes: Vector[Attribute], `trait`: Option[TraitExt]) extends NamedItem {
+  val name = ApiPrefix + _name
   def traitExt = `trait`
 }
 
-case class Enum(name: String, values: Vector[EnumValue]) extends NamedItem {
+case class Enum(_name: String, values: Vector[EnumValue]) extends NamedItem {
+  val name = ApiPrefix + _name
   def traitExt = None
 }
 case class EnumValue(id: Int, name: String)
@@ -87,11 +94,11 @@ case class EnumValue(id: Int, name: String)
 trait JsonFormats extends DefaultJsonProtocol with Hacks {
   val aliases: Map[String, String]
 
-  implicit val traitFormat = jsonFormat1(Trait)
-  implicit val traitExtFormat = jsonFormat2(TraitExt)
+  implicit val traitFormat = jsonFormat[String, Trait](Trait.apply, "name")
+  implicit val traitExtFormat = jsonFormat[String, Int, TraitExt](TraitExt.apply, "name", "key")
 
   implicit val enumValueFormat = jsonFormat2(EnumValue)
-  implicit val enumFormat = jsonFormat2(Enum)
+  implicit val enumFormat = jsonFormat[String, Vector[EnumValue], Enum](Enum.apply, "name", "values")
 
   implicit object aliasFormat extends RootJsonFormat[Alias] {
     def write(typ: Alias): JsValue = throw new NotImplementedError()
@@ -138,9 +145,9 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
       case obj: JsObject =>
         obj.getFields("type", "childType") match {
           case Seq(JsString("struct"), JsString(structName)) =>
-            Types.Struct(structName)
+            Types.Struct("Api" + structName)
           case Seq(JsString("enum"), JsString(enumName)) =>
-            Types.Enum(enumName)
+            Types.Enum("Api" + enumName)
           case Seq(JsString("list"), childType) =>
             Types.List(read(childType))
           case Seq(JsString("opt"), childType) =>
@@ -148,7 +155,7 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
           case Seq(JsString("alias"), JsString(aliasName)) =>
             aliases.get(aliasName) map (t => read(JsString(t))) getOrElse(deserializationError(f"Unknown alias $aliasName%s"))
           case Seq(JsString("trait"), JsString(traitName)) =>
-            Types.Trait(traitName)
+            Types.Trait("Api" + traitName)
         }
       case _ =>
         deserializationError("Attribute type should be JsString or JsObject")

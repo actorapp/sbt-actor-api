@@ -1,7 +1,5 @@
 package im.actor.api
 
-import scala.collection.mutable
-
 trait Hacks {
   def hackAttributeName(name: String): String = {
     if (name == "uid")

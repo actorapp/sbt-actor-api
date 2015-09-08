@@ -3,8 +3,7 @@ package im.actor.api
 import treehugger.forest._, definitions._
 import treehuggerDSL._
 import scala.language.postfixOps
-import scala.collection.mutable
-import spray.json._, DefaultJsonProtocol._
+import spray.json._
 
 class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with SerializationTrees with DeserializationTrees with CodecTrees with ApiServiceTrees {
   val jsonAst = jsonString.parseJson
@@ -346,8 +345,8 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     )
 
     val (parents, traitImplTrees) = struct.`trait` match {
-      case Some(traitExt@TraitExt(traitName, traitKey)) =>
-        (Vector(typeRef(valueCache(traitName))),
+      case Some(traitExt@TraitExt(_, traitKey)) =>
+        (Vector(typeRef(valueCache(traitExt.name))),
           Vector(VAL("header") := LIT(traitExt.key)))
       case None =>
         val parents =
