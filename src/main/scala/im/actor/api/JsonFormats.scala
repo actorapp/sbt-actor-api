@@ -104,26 +104,26 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
     def write(typ: Alias): JsValue = throw new NotImplementedError()
 
     def read(value: JsValue) = value match {
-      case JsObject(fields) =>
+      case JsObject(fields) ⇒
         val optAlias = for {
-          jsAlias <- fields.get("alias")
-          jsTyp <- fields.get("type")
+          jsAlias ← fields.get("alias")
+          jsTyp ← fields.get("type")
         } yield {
           jsAlias match {
-            case JsString(alias) =>
+            case JsString(alias) ⇒
               jsTyp match {
-                case JsString(typ) =>
+                case JsString(typ) ⇒
                   Alias(typ, alias)
-                case _ =>
+                case _ ⇒
                   deserializationError("Alias type should be a JsString")
               }
-            case _ =>
+            case _ ⇒
               deserializationError("Alias alias should be a JsString")
           }
         }
 
         optAlias getOrElse deserializationError("Both type and alias fields are required for an alias")
-      case _ =>
+      case _ ⇒
         deserializationError("Alias should be a JsObject")
     }
   }
@@ -132,32 +132,32 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
     def write(typ: Types.AttributeType): JsValue = throw new NotImplementedError()
 
     def read(value: JsValue) = value match {
-      case JsString(typName) => typName match {
-        case "int32" => Types.Int32
-        case "int64" => Types.Int64
-        case "double" => Types.Double
-        case "string" => Types.String
-        case "bool" => Types.Bool
-        case "bytes" => Types.Bytes
-        case unsupported => deserializationError(s"Unknown type $unsupported%s")
+      case JsString(typName) ⇒ typName match {
+        case "int32"     ⇒ Types.Int32
+        case "int64"     ⇒ Types.Int64
+        case "double"    ⇒ Types.Double
+        case "string"    ⇒ Types.String
+        case "bool"      ⇒ Types.Bool
+        case "bytes"     ⇒ Types.Bytes
+        case unsupported ⇒ deserializationError(s"Unknown type $unsupported%s")
       }
 
-      case obj: JsObject =>
+      case obj: JsObject ⇒
         obj.getFields("type", "childType") match {
-          case Seq(JsString("struct"), JsString(structName)) =>
+          case Seq(JsString("struct"), JsString(structName)) ⇒
             Types.Struct("Api" + structName)
-          case Seq(JsString("enum"), JsString(enumName)) =>
+          case Seq(JsString("enum"), JsString(enumName)) ⇒
             Types.Enum("Api" + enumName)
-          case Seq(JsString("list"), childType) =>
+          case Seq(JsString("list"), childType) ⇒
             Types.List(read(childType))
-          case Seq(JsString("opt"), childType) =>
+          case Seq(JsString("opt"), childType) ⇒
             Types.Opt(read(childType))
-          case Seq(JsString("alias"), JsString(aliasName)) =>
-            aliases.get(aliasName) map (t => read(JsString(t))) getOrElse(deserializationError(f"Unknown alias $aliasName%s"))
-          case Seq(JsString("trait"), JsString(traitName)) =>
+          case Seq(JsString("alias"), JsString(aliasName)) ⇒
+            aliases.get(aliasName) map (t ⇒ read(JsString(t))) getOrElse (deserializationError(f"Unknown alias $aliasName%s"))
+          case Seq(JsString("trait"), JsString(traitName)) ⇒
             Types.Trait("Api" + traitName)
         }
-      case _ =>
+      case _ ⇒
         deserializationError("Attribute type should be JsString or JsObject")
     }
   }
@@ -165,53 +165,53 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
     def write(attr: Attribute): JsValue = throw new NotImplementedError()
 
     def read(value: JsValue): Attribute = value match {
-      case obj: JsObject =>
+      case obj: JsObject ⇒
         val optAttribute = for {
-          jsTyp <- obj.fields.get("type")
-          jsId <- obj.fields.get("id")
-          jsName <- obj.fields.get("name")
+          jsTyp ← obj.fields.get("type")
+          jsId ← obj.fields.get("id")
+          jsName ← obj.fields.get("name")
         } yield {
           jsId match {
-            case JsNumber(id) =>
+            case JsNumber(id) ⇒
               jsName match {
-                case JsString(unhackedName) =>
+                case JsString(unhackedName) ⇒
                   val name = hackAttributeName(unhackedName)
                   val typ = attributeTypeFormat.read(jsTyp)
                   Attribute(typ, id.toInt, name)
-                case _ => deserializationError("Attribute name should be JsString")
+                case _ ⇒ deserializationError("Attribute name should be JsString")
               }
-            case _ => deserializationError("Attribute type should be JsNumber")
+            case _ ⇒ deserializationError("Attribute type should be JsNumber")
           }
         }
 
         optAttribute getOrElse (deserializationError("Not enough fields for attribute"))
-      case _ => deserializationError("Attribute should be a JsObject")
+      case _ ⇒ deserializationError("Attribute should be a JsObject")
     }
   }
 
   implicit val anonymousRpcResponseFormat = jsonFormat2(AnonymousRpcResponse)
   implicit val referenceRpcResponseFormat = jsonFormat1(ReferenceRpcResponse)
-  implicit val rpcResponseContentFormat     = jsonFormat3(RpcResponseContent)
+  implicit val rpcResponseContentFormat = jsonFormat3(RpcResponseContent)
 
   implicit object rpcResponseFormat extends RootJsonFormat[RpcResponse] {
     def write(attr: RpcResponse): JsValue = throw new NotImplementedError()
 
     def read(value: JsValue) = value match {
-      case obj: JsObject =>
+      case obj: JsObject ⇒
         obj.fields.get("type") match {
-          case Some(JsString(typ)) =>
+          case Some(JsString(typ)) ⇒
             readTyped(typ, obj)
-          case _ =>
+          case _ ⇒
             deserializationError("RpcResponse type should be present and be a JsString")
         }
 
-      case _ =>
+      case _ ⇒
         deserializationError("RpcResponse should be a JsObject")
     }
 
     def readTyped(typ: String, obj: JsObject): RpcResponse = {
       typ match {
-        case "anonymous" =>
+        case "anonymous" ⇒
           /*
           val optHeader = obj.fields.get("header") map {
             case JsNumber(header) => header.toInt
@@ -227,7 +227,7 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
           AnonymousRpcResponse(optHeader, optAttributes getOrElse (Vector.empty))
            */
           anonymousRpcResponseFormat.read(obj)
-        case "reference" =>
+        case "reference" ⇒
           referenceRpcResponseFormat.read(obj)
       }
     }
@@ -237,21 +237,21 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
     def write(attr: Struct): JsValue = throw new NotImplementedError()
 
     def read(value: JsValue) = value match {
-      case obj: JsObject =>
+      case obj: JsObject ⇒
         obj.getFields("name", "attributes") match {
-          case Seq(JsString(name), JsArray(jsAttributes)) =>
+          case Seq(JsString(name), JsArray(jsAttributes)) ⇒
             val attributes = jsAttributes map attributeFormat.read
 
             val traitExtOpt: Option[TraitExt] = obj.fields.get("trait") map {
-              case obj: JsObject => traitExtFormat.read(obj)
-              case _ => deserializationError("Expecting traitExt to be a JsObject")
+              case obj: JsObject ⇒ traitExtFormat.read(obj)
+              case _             ⇒ deserializationError("Expecting traitExt to be a JsObject")
             }
 
             Struct(name, attributes, traitExtOpt)
-          case _ => deserializationError("Both name and attributes are required for Struct")
+          case _ ⇒ deserializationError("Both name and attributes are required for Struct")
         }
 
-      case _ =>
+      case _ ⇒
         deserializationError("RpcResponse should be a JsObject")
     }
   }

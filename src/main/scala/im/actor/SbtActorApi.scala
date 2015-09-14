@@ -18,7 +18,7 @@ object SbtActorApi extends AutoPlugin {
   lazy val settings: Seq[Setting[_]] = Seq(
     sourceDirectory in ActorApi <<= (sourceDirectory in Compile),
     path <<= sourceDirectory in ActorApi,
-    managedClasspath in ActorApi <<= (classpathTypes, update) map { (ct, report) =>
+    managedClasspath in ActorApi <<= (classpathTypes, update) map { (ct, report) ⇒
       Classpaths.managedJars(ActorApi, ct, report)
     },
     outputPath <<= sourceManaged in ActorApi,
@@ -33,7 +33,8 @@ object SbtActorApi extends AutoPlugin {
 
     actorapiClean <<= (
       sourceManaged in ActorApi,
-      streams).map(clean),
+      streams
+    ).map(clean),
 
     sourceGenerators in Compile <+= actorapi
   )
@@ -68,28 +69,29 @@ object SbtActorApi extends AutoPlugin {
       val output = compiledFileDir(targetDir)
 
       val cached = FileFunction.cached(streams.cacheDirectory / "actor-api", FilesInfo.lastModified, FilesInfo.exists) {
-        (in: Set[File]) => {
-          if (!output.exists())
-            IO.createDirectory(output)
+        (in: Set[File]) ⇒
+          {
+            if (!output.exists())
+              IO.createDirectory(output)
 
-          val src = input / "actor.json"
-          if (src.exists()) {
-            val sources = (new Json2Tree(IO.read(src))).convert()
+            val src = input / "actor.json"
+            if (src.exists()) {
+              val sources = (new Json2Tree(IO.read(src))).convert()
 
-            sources foreach {
-              case (name, source) =>
-                val targetFile = compiledFile(targetDir, name)
+              sources foreach {
+                case (name, source) ⇒
+                  val targetFile = compiledFile(targetDir, name)
 
-                log.info(f"Generated ActorApi $targetFile%s")
+                  log.info(f"Generated ActorApi $targetFile%s")
 
-                IO.write(targetFile, source)
+                  IO.write(targetFile, source)
+              }
+            } else {
+              log.info(f"no actor.json file in $input%s")
             }
-          } else {
-            log.info(f"no actor.json file in $input%s")
-          }
 
-          (output ** ("*.scala")).get.toSet
-        }
+            (output ** ("*.scala")).get.toSet
+          }
       }
       cached((input ** "actor.json").get.toSet).toSeq
     }

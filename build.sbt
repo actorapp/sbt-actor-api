@@ -1,3 +1,5 @@
+import scalariform.formatter.preferences._
+
 sbtPlugin := true
 
 organization := "im.actor"
@@ -20,6 +22,14 @@ libraryDependencies ++= Seq(
   "io.spray" %%  "spray-json" % "1.3.1",
   "org.specs2" %% "specs2-core" % "2.4.15" % "test"
 )
+
+scalariformSettings
+
+ScalariformKeys.preferences :=
+  ScalariformKeys.preferences.value
+    .setPreference(RewriteArrowSymbols, true)
+    .setPreference(AlignParameters, true)
+    .setPreference(AlignSingleLineCaseStatements, true)
 
 publishTo := {
   val nexus = "https://oss.sonatype.org/"

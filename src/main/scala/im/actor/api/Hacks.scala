@@ -14,7 +14,7 @@ trait Hacks {
 
   def extTypeName(structName: String): String = structName match {
     //case "MessageContent" => "type"
-    case _ => "ext"
+    case _ ⇒ "ext"
   }
 
   def prettify(source: String): String = {

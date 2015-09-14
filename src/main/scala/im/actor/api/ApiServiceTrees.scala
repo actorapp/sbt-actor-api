@@ -9,12 +9,14 @@ trait ApiServiceTrees extends TreeHelpers {
   val baseServiceTrees: Vector[Tree] = {
     Vector(
       TRAITDEF("Service") := BLOCK(
-        TYPEVAR("HandleResult") withFlags(Flags.PROTECTED) := REF("\\/") APPLYTYPE(
+        TYPEVAR("HandleResult") withFlags (Flags.PROTECTED) := REF("\\/") APPLYTYPE (
           "RpcError",
-          "RpcOk"),
-        TYPEVAR("HandlerResult[A <: RpcResponse]") withFlags(Flags.PROTECTED) := REF("\\/") APPLYTYPE(
+          "RpcOk"
+        ),
+        TYPEVAR("HandlerResult[A <: RpcResponse]") withFlags (Flags.PROTECTED) := REF("\\/") APPLYTYPE (
           "RpcError",
-          "A"),
+          "A"
+        ),
         VAL("handleRequestPartial", valueCache("PartialFunction[RpcRequest, ClientData => Future[HandleResult]]"))
       ),
       TRAITDEF("BaseClientData") := BLOCK(
@@ -22,13 +24,13 @@ trait ApiServiceTrees extends TreeHelpers {
         VAL("sessionId", LongClass)
       ),
       CASECLASSDEF("ClientData")
-        withParams(PARAM("authId", LongClass), PARAM("sessionId", LongClass), PARAM("optUserId", optionType(IntClass)))
+        withParams (PARAM("authId", LongClass), PARAM("sessionId", LongClass), PARAM("optUserId", optionType(IntClass)))
         withParents (valueCache("BaseClientData")),
       CASECLASSDEF("AuthorizedClientData")
-        withParams(PARAM("authId", LongClass), PARAM("sessionId", LongClass), PARAM("userId", IntClass))
+        withParams (PARAM("authId", LongClass), PARAM("sessionId", LongClass), PARAM("userId", IntClass))
         withParents (valueCache("BaseClientData")),
       CASECLASSDEF("GuestClientData")
-        withParams(PARAM("authId", LongClass), PARAM("sessionId", LongClass))
+        withParams (PARAM("authId", LongClass), PARAM("sessionId", LongClass))
         withParents (valueCache("BaseClientData"))
     )
   }
@@ -40,29 +42,29 @@ trait ApiServiceTrees extends TreeHelpers {
       Vector.empty
     } else {
       val handlers: Vector[Tree] = (rpcs map {
-        case RpcContent(_, name, attributes, response) =>
-          val params = attributes map { attr =>
+        case RpcContent(_, name, attributes, response) ⇒
+          val params = attributes map { attr ⇒
 
             def scalaTyp(typ: Types.AttributeType): Type = typ match {
-              case Types.Int32 => IntClass
-              case Types.Int64 => LongClass
-              case Types.Bool => BooleanClass
-              case Types.Double => DoubleClass
-              case Types.String => StringClass
-              case Types.Bytes => arrayType(ByteClass)
-              case Types.Enum(enumName) => valueCache(f"Refs.$enumName%s.$enumName%s")
-              case Types.Opt(optAttrType) => optionType(scalaTyp(optAttrType))
-              case Types.List(listAttrType) => vectorType(scalaTyp(listAttrType))
-              case Types.Struct(structName) => valueCache(f"Refs.$structName%s")
-              case Types.Trait(traitName) => valueCache(f"Refs.$traitName%s")
+              case Types.Int32              ⇒ IntClass
+              case Types.Int64              ⇒ LongClass
+              case Types.Bool               ⇒ BooleanClass
+              case Types.Double             ⇒ DoubleClass
+              case Types.String             ⇒ StringClass
+              case Types.Bytes              ⇒ arrayType(ByteClass)
+              case Types.Enum(enumName)     ⇒ valueCache(f"Refs.$enumName%s.$enumName%s")
+              case Types.Opt(optAttrType)   ⇒ optionType(scalaTyp(optAttrType))
+              case Types.List(listAttrType) ⇒ vectorType(scalaTyp(listAttrType))
+              case Types.Struct(structName) ⇒ valueCache(f"Refs.$structName%s")
+              case Types.Trait(traitName)   ⇒ valueCache(f"Refs.$traitName%s")
             }
 
             PARAM(attr.name, scalaTyp(attr.typ)): ValDef
           }
 
           val respType = response match {
-            case _: AnonymousRpcResponse => f"Response$name%s"
-            case named: NamedRpcResponse => f"Refs.Response${named.name}%s"
+            case _: AnonymousRpcResponse ⇒ f"Response$name%s"
+            case named: NamedRpcResponse ⇒ f"Refs.Response${named.name}%s"
           }
 
           val hname = f"handle$name%s"
@@ -79,49 +81,48 @@ trait ApiServiceTrees extends TreeHelpers {
 
           Vector(
             (DEF(jhname, htype).withParams(
-              params.toVector :+ PARAM("clientData", valueCache("ClientData")).tree
-            )).tree,
+            params.toVector :+ PARAM("clientData", valueCache("ClientData")).tree
+          )).tree,
             DEF(shname, htype).withParams(
               params.toVector
             ).withParams(
-                PARAM("clientData", valueCache("ClientData")).withFlags(Flags.IMPLICIT)
-              ) := REF(jhname) APPLY (attributes.map(a => REF(a.name)) :+ REF("clientData"))
+              PARAM("clientData", valueCache("ClientData")).withFlags(Flags.IMPLICIT)
+            ) := REF(jhname) APPLY (attributes.map(a ⇒ REF(a.name)) :+ REF("clientData"))
           )
       }).flatten
 
       val pfType = valueCache("PartialFunction[RpcRequest, ClientData => Future[HandleResult]]")
-      val handleRequestDefPF = VAL("handleRequestPartial", pfType) withFlags(Flags.OVERRIDE) :=
+      val handleRequestDefPF = VAL("handleRequestPartial", pfType) withFlags (Flags.OVERRIDE) :=
         BLOCK(
-        (rpcs map {
-          case RpcContent(_, name, attributes, _) =>
-            val rqParams: Vector[Tree] = attributes map { attr =>
+          (rpcs map {
+          case RpcContent(_, name, attributes, _) ⇒
+            val rqParams: Vector[Tree] = attributes map { attr ⇒
               REF("r") DOT (attr.name): Tree
             }
 
             CASE(REF("r") withType (valueCache(f"Request$name%s"))) ==> (
               LAMBDA(PARAM("clientData", valueCache("ClientData"))) ==> BLOCK(
-              VAL("f") := (if (rqParams.isEmpty)
-                REF(f"jhandle$name%s") APPLY (REF("clientData"))
-              else
-                REF(f"jhandle$name%s") APPLY (rqParams :+ REF("clientData"))
-                ),
-              REF("f") DOT ("map") APPLY (BLOCK(
-                CASE(REF("\\/-") APPLY (REF("rsp"))) ==> (
-                  REF("\\/-") APPLY (REF("RpcOk") APPLY (REF("rsp")))
+                VAL("f") := (if (rqParams.isEmpty)
+                  REF(f"jhandle$name%s") APPLY (REF("clientData"))
+                else
+                  REF(f"jhandle$name%s") APPLY (rqParams :+ REF("clientData"))),
+                REF("f") DOT ("map") APPLY (BLOCK(
+                  CASE(REF("\\/-") APPLY (REF("rsp"))) ==> (
+                    REF("\\/-") APPLY (REF("RpcOk") APPLY (REF("rsp")))
                   ),
-                CASE(REF("err: -\\/[RpcError]")) ==> REF("err")
-              ))
+                  CASE(REF("err: -\\/[RpcError]")) ==> REF("err")
+                ))
               )
             )
 
         }).toVector
-      )
+        )
 
-      val handleRequestDef = DEF("handleRequest", valueCache("Future[HandleResult]")) withParams(
+      val handleRequestDef = DEF("handleRequest", valueCache("Future[HandleResult]")) withParams (
         PARAM("clientData", valueCache("ClientData")),
         PARAM("request", valueCache(f"${packageName.capitalize}%sRpcRequest"))
-        ) := BLOCK(
-          REF("handleRequestPartial") APPLY(REF("request")) APPLY(REF("clientData"))
+      ) := BLOCK(
+          REF("handleRequestPartial") APPLY (REF("request")) APPLY (REF("clientData"))
         )
 
       val ecDef: Tree = VAL("ec", valueCache("ExecutionContext")) withFlags (Flags.IMPLICIT, Flags.PROTECTED)
@@ -129,9 +130,9 @@ trait ApiServiceTrees extends TreeHelpers {
       Vector(
         TRAITDEF(f"${packageName.capitalize}Service")
           withParents ("Service") := BLOCK(
-          Vector(ecDef, handleRequestDefPF, handleRequestDef) ++
-            handlers
-        )
+            Vector(ecDef, handleRequestDefPF, handleRequestDef) ++
+              handlers
+          )
       )
     }
   }

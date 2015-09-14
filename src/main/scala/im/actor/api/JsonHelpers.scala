@@ -5,10 +5,10 @@ import scala.reflect.runtime.universe._
 
 trait JsonHelpers {
   implicit class ValidableJsonObject(obj: JsObject) {
-    def withField[A](key: String, errorPrefix: String)(f: JsValue => A): A = {
+    def withField[A](key: String, errorPrefix: String)(f: JsValue ⇒ A): A = {
       obj.fields.get(key) match {
-        case Some(value) => f(value)
-        case None =>
+        case Some(value) ⇒ f(value)
+        case None ⇒
           val pref = if (errorPrefix.isEmpty) {
             ""
           } else {
@@ -18,11 +18,11 @@ trait JsonHelpers {
       }
     }
 
-    def withField[A](key: String)(f: JsValue => A): A = withField[A](key, "")(f)
+    def withField[A](key: String)(f: JsValue ⇒ A): A = withField[A](key, "")(f)
 
-    def withObjectField[A](key: String)(f: JsObject => A): A = withField(key) {
-      case o: JsObject => f(o)
-      case unexpected => throw new Exception(s"$key should be a JsObject but got: $unexpected")
+    def withObjectField[A](key: String)(f: JsObject ⇒ A): A = withField(key) {
+      case o: JsObject ⇒ f(o)
+      case unexpected  ⇒ throw new Exception(s"$key should be a JsObject but got: $unexpected")
     }
   }
 }
