@@ -69,7 +69,7 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
         BLOCK(FOR(forExprs) YIELD completeBuilder)
       }
 
-      val classDef = CASECLASSDEF(className) withParams params := BLOCK(
+      val classDef = CASECLASSDEF(className) withFlags (Flags.PRIVATE) withParams params := BLOCK(
         DEF("asComplete", eitherType(ErrorType, name)) := asCompleteTree
       )
 
@@ -80,7 +80,7 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
         case _ ⇒ NONE
       }
 
-      val objDef = OBJECTDEF(className) := BLOCK(
+      val objDef = OBJECTDEF(className) withFlags (Flags.PRIVATE) := BLOCK(
         VAL("empty") := REF(className) DOT "apply" APPLY (attributes.sortBy(_.id) map (attr ⇒ emptyValue(attr)))
       )
 
