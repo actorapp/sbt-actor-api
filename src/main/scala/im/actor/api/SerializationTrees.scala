@@ -5,7 +5,7 @@ import treehugger.forest._, definitions._
 import treehuggerDSL._
 
 trait SerializationTrees extends TreeHelpers {
-  private def CodedOutputStreamClass = valueCache("com.google.protobuf.CodedOutputStream")
+  private def CodedOutputStreamClass = valueCache("CodedOutputStream")
   private def CodedOutputStream = REF(CodedOutputStreamClass)
 
   private def simpleWriter(writeFn: String, attrId: Int, attrName: String): Tree =

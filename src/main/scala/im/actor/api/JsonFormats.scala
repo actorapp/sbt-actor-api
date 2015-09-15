@@ -37,13 +37,15 @@ case class Attribute(`type`: Types.AttributeType, id: Int, name: String) {
   def withType(typ: Types.AttributeType) = copy(`type` = typ)
 }
 
+trait Named {
+  def name: String
+}
+
 trait Item {
   def traitExt: Option[TraitExt]
 }
 
-trait NamedItem extends Item {
-  def name: String
-}
+trait NamedItem extends Item with Named
 
 trait RpcResponse
 case class AnonymousRpcResponse(header: Int, attributes: Vector[Attribute]) extends Item with RpcResponse {
@@ -153,7 +155,7 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
           case Seq(JsString("opt"), childType) ⇒
             Types.Opt(read(childType))
           case Seq(JsString("alias"), JsString(aliasName)) ⇒
-            aliases.get(aliasName) map (t ⇒ read(JsString(t))) getOrElse (deserializationError(f"Unknown alias $aliasName%s"))
+            aliases.get(aliasName) map (t ⇒ read(JsString(t))) getOrElse deserializationError(f"Unknown alias $aliasName%s")
           case Seq(JsString("trait"), JsString(traitName)) ⇒
             Types.Trait("Api" + traitName)
         }

@@ -15,7 +15,7 @@ trait TreeHelpers {
   }
 
   def vectorType(arg: Type) = appliedType(VectorClass.typeConstructor, List(arg))
-  val EmptyVector: Tree = REF("Vector") DOT ("empty")
+  val EmptyVector: Tree = REF("Vector") DOT "empty"
 
   protected def attrType(typ: Types.AttributeType): Type = typ match {
     case Types.Int32  ⇒ IntClass
@@ -28,11 +28,18 @@ trait TreeHelpers {
       valueCache(f"Refs.$name%s")
     case Types.Enum(name) ⇒
       valueCache(f"Refs.$name%s")
-    case Types.List(typ) ⇒
-      vectorType(attrType(typ))
-    case Types.Opt(typ) ⇒
-      optionType(attrType(typ))
+    case Types.List(listTyp) ⇒
+      vectorType(attrType(listTyp))
+    case Types.Opt(optTyp) ⇒
+      optionType(attrType(optTyp))
     case Types.Trait(name) ⇒
       valueCache(f"Refs.$name%s")
   }
+
+  def XORRIGHT(right: Tree) = REF("Xor") DOT "right" APPLY right
+  def XORLEFT(left: Tree) = REF("Xor") DOT "left" APPLY left
+
+  def xorType(arg1: Type, arg2: Type) = typeRef(NoPrefix, valueCache("Xor"), List(arg1, arg2))
+
+  def emptyVector = valueCache("Vector") DOT "empty"
 }

@@ -103,7 +103,13 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       )
     ).map {
           case (name, trees) ⇒
-            (name, prettify(treeToString(withImports(Vector("scala.concurrent._", "scalaz._"), trees))))
+            (name, prettify(treeToString(withImports(
+              Vector(
+                "scala.concurrent._",
+                "scalaz._",
+                "com.google.protobuf.{ CodedInputStream, CodedOutputStream, ByteString }"
+              ), trees
+            ))))
         }
       .toMap
   }
@@ -242,10 +248,6 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     )
   }
 
-  /**
-   *
-   * @returns response builder ref and response definition trees
-   */
   private def namedResponseItemTrees(
     packageName: String,
     resp:        RpcResponseContent

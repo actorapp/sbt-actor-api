@@ -1,6 +1,6 @@
 package im.actor.api
 
-import treehugger.forest._, definitions._
+import treehugger.forest._
 import treehuggerDSL._
 
 trait CodecTrees extends TreeHelpers {
@@ -40,8 +40,8 @@ trait CodecTrees extends TreeHelpers {
         IMPORT("scodec._"),
         IMPORT("scodec.codecs._"),
 
-        DEF("protoPayload[A]") withParams (PARAM("payloadCodec", valueCache("Codec[A]"))) :=
-          NEW(REF("PayloadCodec[A]")) APPLY (REF("payloadCodec"))
+        DEF("protoPayload[A]") withParams PARAM("payloadCodec", valueCache("Codec[A]")) :=
+          NEW(REF("PayloadCodec[A]")) APPLY REF("payloadCodec")
       ) ++ requestCodecTrees(requests)
         ++ responseCodecTrees(responses)
         ++ structCodecTrees(structs)
@@ -65,13 +65,11 @@ trait CodecTrees extends TreeHelpers {
     }
 
     val updateBoxCodec = VAL("UpdateBoxCodec") :=
-      ubs.foldLeft[Tree](REF("discriminated[UpdateBox]") DOT ("by") APPLY (REF("uint32"))) {
+      ubs.foldLeft[Tree](REF("discriminated[UpdateBox]") DOT "by" APPLY REF("uint32")) {
         case (acc, (ub, packageName)) ⇒
-          acc DOT ("typecase") APPLY (
+          acc DOT "typecase" APPLY (
             REF(f"$packageName%s.${ub.name}%s.header.toLong"),
-            REF("PayloadCodec") APPLY (
-              REF(f"${ub.name}%sCodec")
-            )
+            REF("PayloadCodec") APPLY REF(f"${ub.name}%sCodec")
           )
       }
 
@@ -85,20 +83,18 @@ trait CodecTrees extends TreeHelpers {
     }
 
     val rpcRqCodec = VAL("RpcRequestCodec") :=
-      requests.foldLeft[Tree](REF("discriminated[RpcRequest]") DOT ("by") APPLY (REF("uint32"))) {
+      requests.foldLeft[Tree](REF("discriminated[RpcRequest]") DOT "by" APPLY REF("uint32")) {
         case (acc, (request, packageName)) ⇒
-          acc DOT ("typecase") APPLY (
+          acc DOT "typecase" APPLY (
             REF(f"$packageName%s.Request${request.name}%s.header.toLong"),
-            REF("PayloadCodec") APPLY (
-              REF(f"Request${request.name}%sCodec")
-            )
+            REF("PayloadCodec") APPLY REF(f"Request${request.name}%sCodec")
           )
       }
 
     val requestCodec = VAL("RequestCodec") :=
-      REF("discriminated[Request]") DOT ("by") APPLY (REF("uint8")) DOT ("typecase") APPLY (
+      REF("discriminated[Request]") DOT "by" APPLY REF("uint8") DOT "typecase" APPLY (
         LIT(1),
-        REF("RpcRequestCodec") DOT ("widenOpt") APPLY (
+        REF("RpcRequestCodec") DOT "widenOpt" APPLY (
           REF("Request.apply"),
           REF("Request.unapply")
         )
@@ -116,13 +112,11 @@ trait CodecTrees extends TreeHelpers {
     }
 
     val rpcRspCodec = VAL("RpcResponseCodec") :=
-      responses.foldLeft[Tree](REF("discriminated[RpcResponse]") DOT ("by") APPLY (REF("uint32"))) {
+      responses.foldLeft[Tree](REF("discriminated[RpcResponse]") DOT "by" APPLY REF("uint32")) {
         case (acc, (response, packageName)) ⇒
-          acc DOT ("typecase") APPLY (
+          acc DOT "typecase" APPLY (
             REF(f"$packageName%s.Response${response.name}%s.header.toLong"),
-            REF("PayloadCodec") APPLY (
-              REF(f"Response${response.name}%sCodec")
-            )
+            REF("PayloadCodec") APPLY REF(f"Response${response.name}%sCodec")
           )
       }
 
@@ -132,23 +126,23 @@ trait CodecTrees extends TreeHelpers {
   private def codecTree(packageName: String, name: String, prefix: String): Tree = {
     val typ = f"$packageName%s.${prefix.capitalize}%s$name%s"
 
-    OBJECTDEF(f"$prefix%s$name%sCodec") withParents (f"Codec[$typ%s]") := BLOCK(
-      DEF("sizeBound") := REF("SizeBound") DOT ("unknown"),
-      DEF("encode") withParams (PARAM("r", valueCache(typ))) :=
-        REF("Attempt") DOT ("successful") APPLY (
+    OBJECTDEF(f"$prefix%s$name%sCodec") withParents f"Codec[$typ%s]" := BLOCK(
+      DEF("sizeBound") := REF("SizeBound") DOT "unknown",
+      DEF("encode") withParams PARAM("r", valueCache(typ)) :=
+        REF("Attempt") DOT "successful" APPLY (
           REF("BitVector") APPLY (
-            REF("r") DOT ("toByteArray")
+            REF("r") DOT "toByteArray"
           )
         ),
-      DEF("decode") withParams (PARAM("bv", valueCache("BitVector"))) :=
-        REF(typ) DOT ("parseFrom") APPLY (
-          REF("CodedInputStream") DOT ("newInstance") APPLY (REF("bv") DOT ("toByteBuffer"))
+      DEF("decode") withParams PARAM("bv", valueCache("BitVector")) :=
+        REF(typ) DOT "parseFrom" APPLY (
+          REF("CodedInputStream") DOT "newInstance" APPLY (REF("bv") DOT "toByteBuffer")
         ) MATCH (
-            CASE(REF("Left") APPLY (REF("partial"))) ==> (
-              REF("Attempt") DOT ("failure") APPLY (REF("Err") APPLY (REF("partial") DOT ("toString")))
+            CASE(REF("Left") APPLY REF("error")) ==> (
+              REF("Attempt") DOT "failure" APPLY (REF("Err") APPLY REF("error"))
             ),
-              CASE(REF("Right") APPLY (REF("r"))) ==> (
-                REF("Attempt.successful") APPLY (REF("DecodeResult") APPLY (REF("r"), REF("BitVector") DOT ("empty")))
+              CASE(REF("Right") APPLY REF("r")) ==> (
+                REF("Attempt.successful") APPLY (REF("DecodeResult") APPLY (REF("r"), REF("BitVector") DOT "empty"))
               )
           )
     )
