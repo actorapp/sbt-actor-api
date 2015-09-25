@@ -24,16 +24,16 @@ trait TreeHelpers {
     case Types.String ⇒ StringClass
     case Types.Bool   ⇒ BooleanClass
     case Types.Bytes  ⇒ arrayType(ByteClass)
-    case Types.Struct(name) ⇒
-      valueCache(f"Refs.$name%s")
-    case Types.Enum(name) ⇒
-      valueCache(f"Refs.$name%s")
+    case struct @ Types.Struct(_) ⇒
+      valueCache(f"Refs.${struct.name}%s")
+    case enum @ Types.Enum(_) ⇒
+      valueCache(f"Refs.${enum.name}%s")
     case Types.List(listTyp) ⇒
       vectorType(attrType(listTyp))
     case Types.Opt(optTyp) ⇒
       optionType(attrType(optTyp))
-    case Types.Trait(name) ⇒
-      valueCache(f"Refs.$name%s")
+    case trai @ Types.Trait(_) ⇒
+      valueCache(f"Refs.${trai.name}%s")
   }
 
   def XORRIGHT(right: Tree) = REF("Xor") DOT "right" APPLY right

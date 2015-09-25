@@ -1,6 +1,7 @@
 package im.actor.api
 
 import com.google.protobuf.WireFormat
+import im.actor.api.Types.NamedAttributeType
 import scala.language.postfixOps
 import treehugger.forest._, definitions._
 import treehuggerDSL._
@@ -207,7 +208,9 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
     case Types.String           ⇒ simpleReader("readString")
     case Types.Bytes            ⇒ simpleReader("readByteArray")
     case Types.Opt(optAttrType) ⇒ reader(optAttrType)
-    case Types.List(Types.Struct(structName)) ⇒
+    case Types.List(typ @ (Types.Struct(_) | Types.Trait(_))) ⇒
+      val structName = typ.asInstanceOf[NamedAttributeType].name
+
       BLOCK(
         VAL("length") := REF("in") DOT "readRawVarint32" APPLY (),
         VAL("oldLimit") := REF("in") DOT "pushLimit" APPLY REF("length"),
@@ -235,7 +238,8 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
 
         REF("values")
       )
-    case Types.Struct(structName) ⇒
+    case struct @ Types.Struct(_) ⇒
+      val structName = struct.name
       BLOCK(
         VAL("length") := REF("in") DOT "readRawVarint32" APPLY (),
         VAL("oldLimit") := REF("in") DOT "pushLimit" APPLY REF("length"),
@@ -247,13 +251,17 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
 
         REF("message")
       )
-    case Types.Enum(enumName) ⇒
+    case enum @ Types.Enum(_) ⇒
+      val enumName = enum.name
+
       BLOCK(
         REF("Refs") DOT enumName APPLY (
           REF("in") DOT "readEnum" APPLY ()
         )
       )
-    case Types.Trait(traitName) ⇒
+    case trai @ Types.Trait(_) ⇒
+      val traitName = trai.name
+
       BLOCK(
         VAL("bytes") := REF("in") DOT "readByteArray" APPLY (),
         VAL("stream") := valueCache("CodedInputStream") DOT "newInstance" APPLY REF("bytes"),
@@ -337,7 +345,10 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
 
       attr.typ match {
         case typ @ Types.List(listAttrType) ⇒
-          if (listAttrType.isInstanceOf[Types.Struct] || listAttrType.isInstanceOf[Types.Bytes.type] || listAttrType.isInstanceOf[Types.String.type]) {
+          if (listAttrType.isInstanceOf[Types.Struct] ||
+            listAttrType.isInstanceOf[Types.Trait] ||
+            listAttrType.isInstanceOf[Types.Bytes.type] ||
+            listAttrType.isInstanceOf[Types.String.type]) {
             val baseCase = baseCaseExpr ==> BLOCK(
               readCaseBody(attr.name, typ, Some(":+"))
             )

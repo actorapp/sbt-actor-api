@@ -17,15 +17,19 @@ object Types {
   case object Bool extends AttributeType
   case object Bytes extends AttributeType
 
-  case class Struct(_name: String) extends AttributeType {
+  trait NamedAttributeType extends AttributeType {
+    val name: String
+  }
+
+  case class Struct(_name: String) extends NamedAttributeType {
     val name = ApiPrefix + _name
   }
-  case class Enum(_name: String) extends AttributeType {
+  case class Enum(_name: String) extends NamedAttributeType {
     val name = ApiPrefix + _name
   }
   case class List(typ: AttributeType) extends AttributeType
   case class Opt(typ: AttributeType) extends AttributeType
-  case class Trait(_name: String) extends AttributeType {
+  case class Trait(_name: String) extends NamedAttributeType {
     val name = ApiPrefix + _name
   }
 
@@ -147,9 +151,9 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
       case obj: JsObject ⇒
         obj.getFields("type", "childType") match {
           case Seq(JsString("struct"), JsString(structName)) ⇒
-            Types.Struct("Api" + structName)
+            Types.Struct(structName)
           case Seq(JsString("enum"), JsString(enumName)) ⇒
-            Types.Enum("Api" + enumName)
+            Types.Enum(enumName)
           case Seq(JsString("list"), childType) ⇒
             Types.List(read(childType))
           case Seq(JsString("opt"), childType) ⇒
@@ -157,7 +161,7 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
           case Seq(JsString("alias"), JsString(aliasName)) ⇒
             aliases.get(aliasName) map (t ⇒ read(JsString(t))) getOrElse deserializationError(f"Unknown alias $aliasName%s")
           case Seq(JsString("trait"), JsString(traitName)) ⇒
-            Types.Trait("Api" + traitName)
+            Types.Trait(traitName)
         }
       case _ ⇒
         deserializationError("Attribute type should be JsString or JsObject")

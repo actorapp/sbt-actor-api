@@ -52,11 +52,11 @@ trait ApiServiceTrees extends TreeHelpers {
               case Types.Double             ⇒ DoubleClass
               case Types.String             ⇒ StringClass
               case Types.Bytes              ⇒ arrayType(ByteClass)
-              case Types.Enum(enumName)     ⇒ valueCache(f"Refs.$enumName%s.$enumName%s")
+              case enum @ Types.Enum(_)     ⇒ valueCache(f"Refs.${enum.name}%s.${enum.name}%s")
               case Types.Opt(optAttrType)   ⇒ optionType(scalaTyp(optAttrType))
               case Types.List(listAttrType) ⇒ vectorType(scalaTyp(listAttrType))
-              case Types.Struct(structName) ⇒ valueCache(f"Refs.$structName%s")
-              case Types.Trait(traitName)   ⇒ valueCache(f"Refs.$traitName%s")
+              case struct @ Types.Struct(_) ⇒ valueCache(f"Refs.${struct.name}%s")
+              case trai @ Types.Trait(_)    ⇒ valueCache(f"Refs.${trai.name}%s")
             }
 
             PARAM(attr.name, scalaTyp(attr.typ)): ValDef
