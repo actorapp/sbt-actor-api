@@ -6,9 +6,9 @@ organization := "im.actor"
 
 name := "sbt-actor-api"
 
-version := "0.6.15"
+version := "0.6.16"
 
-scalaVersion := "2.10.5"
+scalaVersion := "2.10.6"
 
 scalacOptions ++= Seq("-deprecation", "-feature")
 

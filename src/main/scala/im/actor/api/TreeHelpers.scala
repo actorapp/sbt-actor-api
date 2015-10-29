@@ -14,7 +14,7 @@ trait TreeHelpers {
     })
   }
 
-  def vectorType(arg: Type) = appliedType(VectorClass.typeConstructor, List(arg))
+  def indexedSeqType(arg: Type) = appliedType(IndexedSeqClass.typeConstructor, List(arg))
   val EmptyVector: Tree = REF("Vector") DOT "empty"
 
   protected def attrType(typ: Types.AttributeType): Type = typ match {
@@ -29,7 +29,7 @@ trait TreeHelpers {
     case enum @ Types.Enum(_) ⇒
       valueCache(f"Refs.${enum.name}%s")
     case Types.List(listTyp) ⇒
-      vectorType(attrType(listTyp))
+      indexedSeqType(attrType(listTyp))
     case Types.Opt(optTyp) ⇒
       optionType(attrType(optTyp))
     case trai @ Types.Trait(_) ⇒

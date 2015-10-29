@@ -54,7 +54,7 @@ trait ApiServiceTrees extends TreeHelpers {
               case Types.Bytes              ⇒ arrayType(ByteClass)
               case enum @ Types.Enum(_)     ⇒ valueCache(f"Refs.${enum.name}%s.${enum.name}%s")
               case Types.Opt(optAttrType)   ⇒ optionType(scalaTyp(optAttrType))
-              case Types.List(listAttrType) ⇒ vectorType(scalaTyp(listAttrType))
+              case Types.List(listAttrType) ⇒ indexedSeqType(scalaTyp(listAttrType))
               case struct @ Types.Struct(_) ⇒ valueCache(f"Refs.${struct.name}%s")
               case trai @ Types.Trait(_)    ⇒ valueCache(f"Refs.${trai.name}%s")
             }
