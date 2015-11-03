@@ -3,12 +3,12 @@ package im.actor.api
 import scala.util.{ Try, Success, Failure }
 import spray.json._
 
-case class Alias(`type`: String, alias: String) {
+private[api] case class Alias(`type`: String, alias: String) {
   val typ = `type`
 }
 
-object Types {
-  trait AttributeType
+private[api] object Types {
+  sealed trait AttributeType
 
   case object Int32 extends AttributeType
   case object Int64 extends AttributeType
@@ -17,7 +17,7 @@ object Types {
   case object Bool extends AttributeType
   case object Bytes extends AttributeType
 
-  trait NamedAttributeType extends AttributeType {
+  sealed trait NamedAttributeType extends AttributeType {
     val name: String
   }
 
@@ -25,6 +25,9 @@ object Types {
     val name = ApiPrefix + _name
   }
   case class Enum(_name: String) extends NamedAttributeType {
+    val name = ApiPrefix + _name
+  }
+  case class Alias(_name: String) extends NamedAttributeType {
     val name = ApiPrefix + _name
   }
   case class List(typ: AttributeType) extends AttributeType
@@ -35,69 +38,69 @@ object Types {
 
 }
 
-case class Attribute(`type`: Types.AttributeType, id: Int, name: String) {
+private[api] case class Attribute(`type`: Types.AttributeType, id: Int, name: String) {
   val typ = `type`
 
   def withType(typ: Types.AttributeType) = copy(`type` = typ)
 }
 
-trait Named {
+private[api] trait Named {
   def name: String
 }
 
-trait Item {
+private[api] trait Item {
   def traitExt: Option[TraitExt]
 }
 
-trait NamedItem extends Item with Named
+private[api] trait NamedItem extends Item with Named
 
-trait RpcResponse
-case class AnonymousRpcResponse(header: Int, attributes: Vector[Attribute]) extends Item with RpcResponse {
+private[api] trait RpcResponse
+private[api] case class AnonymousRpcResponse(header: Int, attributes: Vector[Attribute]) extends Item with RpcResponse {
   def traitExt = None
   def toNamed(name: String) = RpcResponseContent(name, header, attributes)
 }
 
-trait NamedRpcResponse extends NamedItem with RpcResponse
+private[api] trait NamedRpcResponse extends NamedItem with RpcResponse
 
-case class ReferenceRpcResponse(name: String) extends NamedRpcResponse {
+private[api] case class ReferenceRpcResponse(name: String) extends NamedRpcResponse {
   def traitExt = None
 }
-case class RpcResponseContent(name: String, header: Int, attributes: Vector[Attribute]) extends NamedRpcResponse {
-  def traitExt = None
-}
-
-case class RpcContent(header: Int, name: String, attributes: Vector[Attribute], response: RpcResponse) extends NamedItem {
+private[api] case class RpcResponseContent(name: String, header: Int, attributes: Vector[Attribute]) extends NamedRpcResponse {
   def traitExt = None
 }
 
-case class Trait(_name: String) extends NamedItem {
+private[api] case class RpcContent(header: Int, name: String, attributes: Vector[Attribute], response: RpcResponse) extends NamedItem {
+  def traitExt = None
+}
+
+private[api] case class Trait(_name: String) extends NamedItem {
   val name = ApiPrefix + _name
   def traitExt = None
 }
-case class TraitExt(_name: String, key: Int) {
+private[api] case class TraitExt(_name: String, key: Int) {
   val name = ApiPrefix + _name
 }
 
-case class UpdateBox(name: String, header: Int, attributes: Vector[Attribute]) extends NamedItem {
+private[api] case class UpdateBox(name: String, header: Int, attributes: Vector[Attribute]) extends NamedItem {
   def traitExt = None
 }
 
-case class Update(name: String, header: Int, attributes: Vector[Attribute]) extends NamedItem {
+private[api] case class Update(name: String, header: Int, attributes: Vector[Attribute]) extends NamedItem {
   def traitExt = None
 }
 
-case class Struct(_name: String, attributes: Vector[Attribute], `trait`: Option[TraitExt]) extends NamedItem {
+private[api] case class Struct(_name: String, attributes: Vector[Attribute], `trait`: Option[TraitExt]) extends NamedItem {
   val name = ApiPrefix + _name
   def traitExt = `trait`
 }
 
-case class Enum(_name: String, values: Vector[EnumValue]) extends NamedItem {
+private[api] case class Enum(_name: String, values: Vector[EnumValue]) extends NamedItem {
   val name = ApiPrefix + _name
   def traitExt = None
 }
-case class EnumValue(id: Int, name: String)
+private[api] case class EnumValue(id: Int, name: String)
 
-trait JsonFormats extends DefaultJsonProtocol with Hacks {
+private[api] trait JsonFormats extends DefaultJsonProtocol with Hacks {
   val aliases: Map[String, String]
 
   implicit val traitFormat = jsonFormat[String, Trait](Trait.apply, "name")
@@ -134,19 +137,24 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
     }
   }
 
+  def primitiveType(typ: String): Types.AttributeType =
+    typ match {
+      case "int32"     ⇒ Types.Int32
+      case "int64"     ⇒ Types.Int64
+      case "double"    ⇒ Types.Double
+      case "string"    ⇒ Types.String
+      case "bool"      ⇒ Types.Bool
+      case "bytes"     ⇒ Types.Bytes
+      case unsupported ⇒ deserializationError(s"Unknown type $unsupported%s")
+    }
+
+  def normalizeAlias(name: String): String = name.split("_").map(_.capitalize).mkString("")
+
   implicit object attributeTypeFormat extends RootJsonFormat[Types.AttributeType] {
     def write(typ: Types.AttributeType): JsValue = throw new NotImplementedError()
 
     def read(value: JsValue) = value match {
-      case JsString(typName) ⇒ typName match {
-        case "int32"     ⇒ Types.Int32
-        case "int64"     ⇒ Types.Int64
-        case "double"    ⇒ Types.Double
-        case "string"    ⇒ Types.String
-        case "bool"      ⇒ Types.Bool
-        case "bytes"     ⇒ Types.Bytes
-        case unsupported ⇒ deserializationError(s"Unknown type $unsupported%s")
-      }
+      case JsString(typName) ⇒ primitiveType(typName)
 
       case obj: JsObject ⇒
         obj.getFields("type", "childType") match {
@@ -159,7 +167,8 @@ trait JsonFormats extends DefaultJsonProtocol with Hacks {
           case Seq(JsString("opt"), childType) ⇒
             Types.Opt(read(childType))
           case Seq(JsString("alias"), JsString(aliasName)) ⇒
-            aliases.get(aliasName) map (t ⇒ read(JsString(t))) getOrElse deserializationError(f"Unknown alias $aliasName%s")
+            Types.Alias(normalizeAlias(aliasName))
+          //aliases.get(aliasName) map (t ⇒ read(JsString(t))) getOrElse deserializationError(f"Unknown alias $aliasName%s")
           case Seq(JsString("trait"), JsString(traitName)) ⇒
             Types.Trait(traitName)
         }

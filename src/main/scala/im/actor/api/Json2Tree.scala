@@ -1,22 +1,25 @@
 package im.actor.api
 
+import im.actor.api.Types.AttributeType
 import treehugger.forest._, definitions._
 import treehuggerDSL._
 import scala.language.postfixOps
 import spray.json._
 
-class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with SerializationTrees with DeserializationTrees with CodecTrees with ApiServiceTrees {
-  val jsonAst = jsonString.parseJson
-  val rootObj = jsonAst.convertTo[JsObject]
+final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with SerializationTrees with DeserializationTrees with CodecTrees with ApiServiceTrees {
+  private val jsonAst = jsonString.parseJson
+  private val rootObj = jsonAst.convertTo[JsObject]
 
-  val aliases: Map[String, String] = rootObj.withField("aliases") {
+  override val aliases: Map[String, String] = rootObj.withField("aliases") {
     case JsArray(jsAliases) ⇒
       jsAliases.map { jsAlias ⇒
         val alias = aliasFormat.read(jsAlias)
-        (alias.alias, alias.typ)
+        (normalizeAlias(alias.alias), alias.typ)
       }.toMap
     case _ ⇒ deserializationError("Aliases should be JsArray")
   }
+
+  override val aliasesPrim: Map[String, AttributeType] = aliases mapValues primitiveType
 
   def convert(): Map[String, String] = {
     val packages: Vector[(String, Vector[Item])] = rootObj.fields("sections").convertTo[JsArray].elements map {
@@ -104,6 +107,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     ).map {
           case (name, trees) ⇒
             (name, prettify(treeToString(withImports(
+              name,
               Vector(
                 "scala.concurrent._",
                 "scalaz._",
@@ -114,10 +118,16 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       .toMap
   }
 
-  private def withImports(imports: Vector[String], trees: Vector[Tree]): Tree = {
-    PACKAGE("im.actor.api.rpc") := BLOCK(
-      (imports map (IMPORT(_))) ++ trees
-    )
+  private def withImports(name: String, imports: Vector[String], trees: Vector[Tree]): Tree = {
+    if (name == "Base") {
+      PACKAGEHEADER("im.actor.api.rpc").mkTree(
+        ((imports map (IMPORT(_): Tree)) ++ trees).toList
+      )
+    } else {
+      PACKAGE("im.actor.api.rpc") := BLOCK(
+        (imports map (IMPORT(_))) ++ trees
+      )
+    }
   }
 
   private def items(jsonElements: Vector[JsValue]): Vector[Item] = {
@@ -268,6 +278,44 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     classWithCompanion(packageName, className, Vector(valueCache("RpcResponse")), params, serTrees, deserTrees, Vector(headerDef))
   }
 
+  private def getIdsDef(attrs: Seq[Attribute], aliasName: String, isPeer: Boolean = false): DefDef = {
+    def extractor(attr: AttributeType, ref: String): Option[Tree] = attr match {
+      case _: Types.Struct ⇒
+        Some(REF(ref) DOT s"get${aliasName}s": Tree)
+      case Types.List(typ) ⇒
+        extractor(typ, "_") map (REF(ref) FLATMAP _)
+      case Types.Opt(typ) ⇒
+        extractor(typ, s"_$ref") map (ext ⇒ REF(ref) MAP (LAMBDA(PARAM(s"_$ref", attrType(typ))) ==> BLOCK(ext)) POSTFIX "getOrElse" APPLY EmptyVector)
+      case _: Types.Trait ⇒
+        Some(REF(ref) DOT s"get${aliasName}s")
+      case Types.Alias(`aliasName`) ⇒ Some(VECTOR(REF(ref)))
+      case Types.Int32 if ref == "id" && aliasName == "UserId" && isPeer ⇒
+        Some(
+          IF(REF("type") ANY_== REF("Refs.ApiPeerType.Private")) THEN (VECTOR(REF(ref))) ELSE (EmptyVector)
+        )
+      case Types.Int32 if ref == "id" && aliasName == "GroupId" && isPeer ⇒
+        Some(
+          IF(REF("type") ANY_== REF("Refs.ApiPeerType.Group")) THEN (VECTOR(REF(ref))) ELSE (EmptyVector)
+        )
+      case _ ⇒
+        None
+    }
+
+    DEF(s"get${aliasName}s", valueCache("IndexedSeq[Int]")) := {
+      val extractors = attrs flatMap {
+        case Attribute(typ @ Types.Struct("Peer" | "OutPeer"), _, name) ⇒
+          extractor(typ, name)
+        case Attribute(typ, _, name) ⇒
+          extractor(typ, name)
+      } filterNot (_ == EmptyVector)
+
+      if (extractors.nonEmpty)
+        extractors reduce ((a, b) ⇒ BLOCK(a) INFIX "++" APPLY BLOCK(b))
+      else
+        EmptyVector
+    }
+  }
+
   private def traitItemTrees(packageName: String, trai: Trait, children: Vector[NamedItem]): (Vector[Tree], Vector[Tree]) = {
     val globalRefs = Vector(
       TYPEVAR(trai.name) := REF(f"$packageName%s.${trai.name}%s"),
@@ -275,7 +323,12 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
     )
 
     val traitDef = TRAITDEF(trai.name) withFlags Flags.SEALED := BLOCK(
-      traitSerializationTrees(trai.name, children) :+ VAL("header", IntClass).tree
+      traitSerializationTrees(trai.name, children) ++
+        Vector(
+          VAL("header", IntClass).tree,
+          DEF("getUserIds", valueCache("IndexedSeq[Int]")): Tree,
+          DEF("getGroupIds", valueCache("IndexedSeq[Int]")): Tree
+        )
     )
 
     val objDef = OBJECTDEF(trai.name) := BLOCK(
@@ -301,7 +354,9 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
       update.attributes
     )
 
-    classWithCompanion(packageName, className, Vector(valueCache("Update")), params, serTrees, deserTrees, Vector(headerDef))
+    val idsTrees = Seq(getIdsDef(update.attributes, "UserId"), getIdsDef(update.attributes, "GroupId"))
+
+    classWithCompanion(packageName, className, Vector(valueCache("Update")), params, serTrees ++ idsTrees, deserTrees, Vector(headerDef))
   }
 
   private def updateBoxItemTrees(packageName: String, ub: UpdateBox): (Vector[Tree], Vector[Tree]) = {
@@ -361,7 +416,10 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
         (parents, Vector.empty)
     }
 
-    classWithCompanion(packageName, struct.name, parents, params, serTrees ++ traitImplTrees, deserTrees, Vector.empty) match {
+    val isPeer = struct._name == "Peer" || struct._name == "OutPeer"
+    val idsTrees = Seq(getIdsDef(struct.attributes, "UserId", isPeer), getIdsDef(struct.attributes, "GroupId", isPeer))
+
+    classWithCompanion(packageName, struct.name, parents, params, serTrees ++ traitImplTrees ++ idsTrees, deserTrees, Vector.empty) match {
       case (globalRefs, trees) ⇒
         (globalRefs, trees, Vector(struct))
     }
@@ -375,7 +433,7 @@ class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with Se
           VAL(name) withType valueCache(enum.name) := Apply(valueCache("Value"), LIT(id))
       }
 
-      val traitDef = TRAITDEF(enum.name) withParents ("Enumeration")
+      val traitDef = TRAITDEF(enum.name) withParents "Enumeration"
 
       val typeAlias = TYPEVAR(enum.name) := typeRef(valueCache("Value"))
 

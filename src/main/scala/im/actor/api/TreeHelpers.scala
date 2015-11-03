@@ -1,10 +1,14 @@
 package im.actor.api
 
+import im.actor.api.Types.AttributeType
+
 import scala.collection.mutable
 import treehugger.forest._, definitions._
 import treehuggerDSL._
 
-trait TreeHelpers {
+private[api] trait TreeHelpers {
+  val aliasesPrim: Map[String, AttributeType]
+
   private val symCache: mutable.Map[Name, Symbol] = mutable.Map.empty
 
   protected def valueCache(name: Name): Symbol = {
@@ -25,15 +29,17 @@ trait TreeHelpers {
     case Types.Bool   ⇒ BooleanClass
     case Types.Bytes  ⇒ arrayType(ByteClass)
     case struct @ Types.Struct(_) ⇒
-      valueCache(f"Refs.${struct.name}%s")
+      valueCache(s"Refs.${struct.name}")
     case enum @ Types.Enum(_) ⇒
-      valueCache(f"Refs.${enum.name}%s")
+      valueCache(s"Refs.${enum.name}")
     case Types.List(listTyp) ⇒
       indexedSeqType(attrType(listTyp))
     case Types.Opt(optTyp) ⇒
       optionType(attrType(optTyp))
     case trai @ Types.Trait(_) ⇒
-      valueCache(f"Refs.${trai.name}%s")
+      valueCache(s"Refs.${trai.name}")
+    case alias @ Types.Alias(aliasName) ⇒
+      attrType(aliasesPrim.get(aliasName).get)
   }
 
   def XORRIGHT(right: Tree) = REF("Xor") DOT "right" APPLY right

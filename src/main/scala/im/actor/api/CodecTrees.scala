@@ -3,8 +3,8 @@ package im.actor.api
 import treehugger.forest._
 import treehuggerDSL._
 
-trait CodecTrees extends TreeHelpers {
-  def codecTrees(packages: Vector[(String, Vector[Item])]): Tree = {
+private[api] trait CodecTrees extends TreeHelpers {
+  protected def codecTrees(packages: Vector[(String, Vector[Item])]): Tree = {
     val (requests, responses, structs, ubs) =
       packages.foldLeft[(Vector[(RpcContent, String)], Vector[(NamedRpcResponse, String)], Vector[(Struct, String)], Vector[(UpdateBox, String)])]((Vector.empty, Vector.empty, Vector.empty, Vector.empty)) {
         case (acc, (packageName, items)) ⇒

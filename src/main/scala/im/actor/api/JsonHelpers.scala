@@ -3,7 +3,7 @@ package im.actor.api
 import spray.json._
 import scala.reflect.runtime.universe._
 
-trait JsonHelpers {
+private[api] trait JsonHelpers {
   implicit class ValidableJsonObject(obj: JsObject) {
     def withField[A](key: String, errorPrefix: String)(f: JsValue ⇒ A): A = {
       obj.fields.get(key) match {

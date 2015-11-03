@@ -1,10 +1,12 @@
 package im.actor.api
 
+import im.actor.api.Types.AttributeType
+
 import scala.language.postfixOps
 import treehugger.forest._, definitions._
 import treehuggerDSL._
 
-trait SerializationTrees extends TreeHelpers {
+private[api] trait SerializationTrees extends TreeHelpers {
   private def CodedOutputStreamClass = valueCache("CodedOutputStream")
   private def CodedOutputStream = REF(CodedOutputStreamClass)
 
@@ -59,6 +61,8 @@ trait SerializationTrees extends TreeHelpers {
           ),
           REF(traitBaos) DOT ("close") APPLY ()
         )
+      case a @ Types.Alias(aliasName) ⇒
+        writer(id, name, aliasesPrim.get(aliasName).get)
     }
   }
 
@@ -98,6 +102,8 @@ trait SerializationTrees extends TreeHelpers {
             (CodedOutputStreamClass DOT ("computeRawVarint32Size") APPLY (REF("size"))) INT_+
             REF("size")
         ))
+      case Types.Alias(aliasName) ⇒
+        computer(id, name, aliasesPrim.get(aliasName).get)
     }
   }
 

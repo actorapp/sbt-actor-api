@@ -1,13 +1,12 @@
 package im.actor.api
 
 import com.google.protobuf.WireFormat
-import im.actor.api.Types.NamedAttributeType
+import im.actor.api.Types.{ AttributeType, NamedAttributeType }
 import scala.language.postfixOps
 import treehugger.forest._, definitions._
 import treehuggerDSL._
 
-trait DeserializationTrees extends TreeHelpers with Hacks {
-
+private[api] trait DeserializationTrees extends TreeHelpers with Hacks {
   protected val ErrorType = valueCache("String")
   private def notPresent(name: String) = LIT(name) INT_+ LIT(" is required")
   private def partialName(name: String) = s"partial${name.capitalize}"
@@ -267,8 +266,10 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
         VAL("stream") := valueCache("CodedInputStream") DOT "newInstance" APPLY REF("bytes"),
         REF("Refs") DOT traitName DOT "parseFrom" APPLY REF("stream")
       )
+    case alias @ Types.Alias(aliasName) ⇒
+      reader(aliasesPrim.get(aliasName).get)
     case attr ⇒
-      BLOCK().withComment(attr.toString)
+      throw new RuntimeException(s"Unknown attr type: ${attr}")
   }
 
   private def doParseWithCopy(attrName: String, attrType: Types.AttributeType, appendOp: Option[String]): Tree = {
@@ -297,34 +298,6 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
         doParseWithCopy(attrName, attrType, appendOp)
       )
     }
-  /*
-    REF("doParse") APPLY (
-      REF("partialMessage") DOT "copy" APPLY (
-        appendOp match {
-          case Some(op) ⇒
-            val _attrName = attrType match {
-              case Types.List(Types.Struct(_)) ⇒ partialName(attrName)
-              case _                           ⇒ attrName
-            }
-
-            REF(_attrName) := REF("partialMessage") DOT _attrName INFIX op APPLY reader(attrType)
-          case None ⇒
-            attrType match {
-              case Types.Struct(_) | Types.Trait(_) ⇒
-                REF(partialName(attrName)) := reader(attrType)
-              case Types.List(Types.Struct(_)) ⇒
-                REF(partialName(attrName)) := reader(attrType)
-              case Types.Opt(Types.Struct(_) | Types.Trait(_)) ⇒
-                REF(partialName(attrName)) := SOME(reader(attrType))
-              case Types.Opt(optType) ⇒
-                REF(partialName(attrName)) := reader(attrType)
-              case _ ⇒
-                REF(partialName(attrName)) := SOME(reader(attrType))
-            }
-        }
-      )
-    )
-  )*/
 
   @annotation.tailrec
   private def wireType(attrType: Types.AttributeType): Int = {
@@ -335,6 +308,7 @@ trait DeserializationTrees extends TreeHelpers with Hacks {
       case Types.String | Types.Bytes | Types.Struct(_) | Types.Trait(_) ⇒ WireFormat.WIRETYPE_LENGTH_DELIMITED
       case Types.Opt(optAttrType) ⇒ wireType(optAttrType)
       case Types.List(listAttrType) ⇒ wireType(listAttrType)
+      case Types.Alias(name) ⇒ wireType(aliasesPrim.get(name).get)
       case unsupported ⇒ throw new Exception(f"Unsupported wire type: $unsupported%s")
     }
   }
