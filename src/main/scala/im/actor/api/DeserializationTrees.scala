@@ -108,6 +108,7 @@ private[api] trait DeserializationTrees extends TreeHelpers with Hacks {
 
       DEF("parseFrom", eitherType(ErrorType, valueCache(traitName))) withParams PARAM("in", valueCache("CodedInputStream")) := BLOCK(
         DEF("doParse", eitherType(ErrorType, partialTypeRef))
+          withAnnots ANNOT("annotation.tailrec")
           withParams PARAM("partialMessage", partialTypeRef) := BLOCK(
             (REF("in") DOT "readTag()") MATCH cases
           ),
@@ -289,10 +290,10 @@ private[api] trait DeserializationTrees extends TreeHelpers with Hacks {
   private def readCaseBody(attrName: String, attrType: Types.AttributeType, appendOp: Option[String]): Tree =
     attrType match {
       case Types.Struct(_) | Types.Trait(_) | Types.List(Types.Struct(_) | Types.Trait(_)) | Types.Opt(Types.Struct(_) | Types.Trait(_)) ⇒
-        reader(attrType) DOT ("right") FLATMAP {
-          LAMBDA(PARAM("value")) ==>
-            doParseWithCopy(attrName, attrType, appendOp)
-        }
+        reader(attrType) MATCH (
+          CASE(RIGHT(REF("value"))) ==> doParseWithCopy(attrName, attrType, appendOp),
+          CASE(LEFT(REF("e"))) ==> LEFT(REF("e"))
+        )
       case _ ⇒ BLOCK(
         VAL("value") := reader(attrType),
         doParseWithCopy(attrName, attrType, appendOp)
