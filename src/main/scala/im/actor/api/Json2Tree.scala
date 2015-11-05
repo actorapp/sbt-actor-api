@@ -55,7 +55,10 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
 
     val updateBoxDef: Tree = TRAITDEF("UpdateBox") withParents (valueCache("BSerializable"), valueCache("ContainsHeader"))
 
-    val updateDef: Tree = TRAITDEF("Update") withParents (valueCache("BSerializable"), valueCache("ContainsHeader"))
+    val updateDef: Tree = TRAITDEF("Update") withParents (valueCache("BSerializable"), valueCache("ContainsHeader")) := BLOCK(
+      VAL("_relatedUserIds", valueCache("IndexedSeq[Int]")): Tree,
+      VAL("_relatedGroupIds", valueCache("IndexedSeq[Int]")): Tree
+    )
     val requestDef: Tree = CASECLASSDEF("Request") withParams PARAM("body", valueCache("RpcRequest"))
     val requestObjDef: Tree = OBJECTDEF("Request") withParents valueCache("ContainsHeader") := BLOCK(
       VAL("header") := LIT(1)
@@ -278,16 +281,16 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
     classWithCompanion(packageName, className, Vector(valueCache("RpcResponse")), params, serTrees, deserTrees, Vector(headerDef))
   }
 
-  private def getIdsDef(attrs: Seq[Attribute], aliasName: String, isPeer: Boolean = false): DefDef = {
+  private def relatedIdsDef(attrs: Seq[Attribute], aliasName: String, isPeer: Boolean = false): ValDef = {
     def extractor(attr: AttributeType, ref: String): Option[Tree] = attr match {
       case _: Types.Struct ⇒
-        Some(REF(ref) DOT s"get${aliasName}s": Tree)
+        Some(REF(ref) DOT s"_related${aliasName}s": Tree)
       case Types.List(typ) ⇒
         extractor(typ, "_") map (REF(ref) FLATMAP _)
       case Types.Opt(typ) ⇒
         extractor(typ, s"_$ref") map (ext ⇒ REF(ref) MAP (LAMBDA(PARAM(s"_$ref", attrType(typ))) ==> BLOCK(ext)) POSTFIX "getOrElse" APPLY EmptyVector)
       case _: Types.Trait ⇒
-        Some(REF(ref) DOT s"get${aliasName}s")
+        Some(REF(ref) DOT s"_related${aliasName}s")
       case Types.Alias(`aliasName`) ⇒ Some(VECTOR(REF(ref)))
       case Types.Int32 if ref == "id" && aliasName == "UserId" && isPeer ⇒
         Some(
@@ -301,7 +304,7 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
         None
     }
 
-    DEF(s"get${aliasName}s", valueCache("IndexedSeq[Int]")) := {
+    VAL(s"_related${aliasName}s", valueCache("IndexedSeq[Int]")) withFlags Flags.LAZY := {
       val extractors = attrs flatMap {
         case Attribute(typ @ Types.Struct("Peer" | "OutPeer"), _, name) ⇒
           extractor(typ, name)
@@ -310,7 +313,7 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
       } filterNot (_ == EmptyVector)
 
       if (extractors.nonEmpty)
-        extractors reduce ((a, b) ⇒ BLOCK(a) INFIX "++" APPLY BLOCK(b))
+        BLOCK(extractors reduce ((a, b) ⇒ BLOCK(a) INFIX "++" APPLY BLOCK(b)))
       else
         EmptyVector
     }
@@ -326,8 +329,8 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
       traitSerializationTrees(trai.name, children) ++
         Vector(
           VAL("header", IntClass).tree,
-          DEF("getUserIds", valueCache("IndexedSeq[Int]")): Tree,
-          DEF("getGroupIds", valueCache("IndexedSeq[Int]")): Tree
+          VAL("_relatedUserIds", valueCache("IndexedSeq[Int]")): Tree,
+          VAL("_relatedGroupIds", valueCache("IndexedSeq[Int]")): Tree
         )
     )
 
@@ -354,7 +357,7 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
       update.attributes
     )
 
-    val idsTrees = Seq(getIdsDef(update.attributes, "UserId"), getIdsDef(update.attributes, "GroupId"))
+    val idsTrees = Seq(relatedIdsDef(update.attributes, "UserId"), relatedIdsDef(update.attributes, "GroupId"))
 
     classWithCompanion(packageName, className, Vector(valueCache("Update")), params, serTrees ++ idsTrees, deserTrees, Vector(headerDef))
   }
@@ -417,7 +420,7 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
     }
 
     val isPeer = struct._name == "Peer" || struct._name == "OutPeer"
-    val idsTrees = Seq(getIdsDef(struct.attributes, "UserId", isPeer), getIdsDef(struct.attributes, "GroupId", isPeer))
+    val idsTrees = Seq(relatedIdsDef(struct.attributes, "UserId", isPeer), relatedIdsDef(struct.attributes, "GroupId", isPeer))
 
     classWithCompanion(packageName, struct.name, parents, params, serTrees ++ traitImplTrees ++ idsTrees, deserTrees, Vector.empty) match {
       case (globalRefs, trees) ⇒
@@ -493,7 +496,7 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
           objRef
         ),
           Vector(
-            CASECLASSDEF(name) withParents parents withParams params := BLOCK(classTrees ++ commonTrees),
+            CASECLASSDEF(name) withFlags Flags.FINAL withParents parents withParams params := BLOCK(classTrees ++ commonTrees),
             OBJECTDEF(name) := BLOCK(objectTrees ++ commonTrees)
           )
       )
