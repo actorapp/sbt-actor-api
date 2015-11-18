@@ -46,7 +46,7 @@ private[api] trait ApiServiceTrees extends TreeHelpers {
       Vector.empty
     } else {
       val handlers: Vector[Tree] = (rpcs map {
-        case RpcContent(_, name, attributes, response) ⇒
+        case RpcContent(_, name, attributes, _, response) ⇒
           val params = attributes map { attr ⇒
 
             def scalaTyp(typ: Types.AttributeType): Type = typ match {
@@ -100,7 +100,7 @@ private[api] trait ApiServiceTrees extends TreeHelpers {
       val handleRequestDefPF = VAL("handleRequestPartial", pfType) withFlags Flags.OVERRIDE :=
         BLOCK(
           rpcs map {
-            case RpcContent(_, name, attributes, _) ⇒
+            case RpcContent(_, name, attributes, _, _) ⇒
               val rqParams: Vector[Tree] = attributes map { attr ⇒
                 REF("r") DOT attr.name: Tree
               }
