@@ -235,7 +235,8 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
     val classTrees = serializationTrees(
       packageName,
       className,
-      rpc.attributes
+      rpc.attributes,
+      rpc.doc
     )
 
     val deserTrees = deserializationTrees(
@@ -274,7 +275,8 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
     val serTrees = serializationTrees(
       packageName,
       className,
-      resp.attributes
+      resp.attributes,
+      resp.doc
     )
     val deserTrees = deserializationTrees(className, resp.attributes)
 
@@ -349,7 +351,8 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
     val serTrees = serializationTrees(
       packageName,
       className,
-      update.attributes
+      update.attributes,
+      update.doc
     )
 
     val deserTrees = deserializationTrees(
@@ -368,7 +371,8 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
     val serTrees = serializationTrees(
       packageName,
       ub.name,
-      ub.attributes
+      ub.attributes,
+      ub.doc
     )
 
     val deserTrees = deserializationTrees(
@@ -389,7 +393,8 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
         serializationTrees(
           packageName,
           struct.name,
-          struct.attributes
+          struct.attributes,
+          struct.doc
         )
       } else {
         traitChildSerializationTrees(

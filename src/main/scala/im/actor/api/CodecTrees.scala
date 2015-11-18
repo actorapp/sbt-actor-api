@@ -78,7 +78,7 @@ private[api] trait CodecTrees extends TreeHelpers {
 
   private def requestCodecTrees(requests: Vector[(RpcContent, String)]): Vector[Tree] = {
     val rqCodecs = requests map {
-      case (RpcContent(_, name, _, _), packageName) ⇒
+      case (RpcContent(_, name, _, _, _), packageName) ⇒
         codecTree(packageName, name, "Request")
     }
 
