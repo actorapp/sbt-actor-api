@@ -400,7 +400,8 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
         traitChildSerializationTrees(
           packageName,
           struct.name,
-          struct.attributes
+          struct.attributes,
+          struct.doc
         )
       }
 
