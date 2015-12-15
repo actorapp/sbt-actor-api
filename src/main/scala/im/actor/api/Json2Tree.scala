@@ -98,7 +98,7 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
       rpcResponseDef,
       requestDef,
       requestObjDef
-    ) ++ baseServiceTrees
+    ) ++ baseServiceTrees :+ stringHelpersTree
 
     (
       (packageTrees map {
