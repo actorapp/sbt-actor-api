@@ -17,7 +17,11 @@ private[api] trait ApiServiceTrees extends TreeHelpers {
           "RpcError",
           "A"
         ),
-        VAL("handleRequestPartial", valueCache("PartialFunction[RpcRequest, ClientData => Future[HandleResult]]"))
+        VAL("handleRequestPartial", valueCache("PartialFunction[RpcRequest, ClientData => Future[HandleResult]]")),
+        DEF("onFailure", TYPE_REF(REF(PartialFunctionClass) APPLYTYPE ("Throwable", "RpcError"))) :=
+          (REF("PartialFunction") DOT "empty" APPLYTYPE ("Throwable", "RpcError")),
+        DEF("recoverFailure", TYPE_REF(REF(PartialFunctionClass) APPLYTYPE ("Throwable", "HandleResult"))) withFlags Flags.FINAL :=
+          REF("onFailure") DOT "andThen" APPLY LAMBDA(PARAM("e")) ==> BLOCK(REF("-\\/") APPLY REF("e"))
       ),
       TRAITDEF("BaseClientData") := BLOCK(
         VAL("authId", LongClass),
@@ -111,12 +115,12 @@ private[api] trait ApiServiceTrees extends TreeHelpers {
                     REF(f"jhandle$name%s") APPLY REF("clientData")
                   } else
                     REF(f"jhandle$name%s") APPLY (rqParams :+ REF("clientData"))),
-                  REF("f") DOT "map" APPLY BLOCK(
+                  (REF("f") DOT "map" APPLY BLOCK(
                     CASE(REF("\\/-") APPLY REF("rsp")) ==> (
                       REF("\\/-") APPLY (REF("RpcOk") APPLY REF("rsp"))
                     ),
                     CASE(REF("err: -\\/[RpcError]")) ==> REF("err")
-                  )
+                  )) DOT "recover" APPLY REF("recoverFailure")
                 )
               )
 
