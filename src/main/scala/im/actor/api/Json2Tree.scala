@@ -28,11 +28,19 @@ final class Json2Tree(jsonString: String)
   override val aliasesPrim: Map[String, AttributeType] = aliases mapValues primitiveType
 
   def convert(): Map[String, String] = {
-    val packages: Vector[(String, Vector[Item])] = rootObj.fields("sections").convertTo[JsArray].elements map {
+    val packages: Vector[(String, String, Vector[Item])] = rootObj.fields("sections").convertTo[JsArray].elements map {
       case obj: JsObject ⇒
-        obj.fields("package") match {
-          case JsString(packageName) ⇒
-            (packageName, items(obj.fields("items").convertTo[JsArray].elements))
+        (obj.fields("package"), obj.getFields("doc")) match {
+          case (JsString(packageName), packageDocs) ⇒
+            val docString = packageDocs match {
+              case Seq(JsArray(docs)) ⇒
+                docs flatMap {
+                  case JsString(content) ⇒ Some(content)
+                  case _                 ⇒ None
+                } mkString "\n"
+              case _ ⇒ ""
+            }
+            (packageName, docString, items(obj.fields("items").convertTo[JsArray].elements))
           case _ ⇒
             throw new Exception("package field is not a JsString")
         }
@@ -41,9 +49,9 @@ final class Json2Tree(jsonString: String)
     }
 
     val refsTreesSeq: Vector[(Vector[Tree], (String, Tree))] = packages map {
-      case (packageName, items) ⇒
+      case (packageName, packageDoc, items) ⇒
         val (globalRefs, block) = itemsBlock(packageName, items)
-        (globalRefs, packageName → (PACKAGE(packageName) := block))
+        (globalRefs, packageName → ((PACKAGE(packageName) := block) withDoc List(packageDoc)))
     }
 
     val (globalRefsV, packageTrees) = refsTreesSeq.unzip
@@ -111,7 +119,7 @@ final class Json2Tree(jsonString: String)
         case (p, t) ⇒ (p, Vector(t))
       }) ++ Seq(
         "Base" → baseTrees,
-        "Codecs" → Vector(codecTrees(packages))
+        "Codecs" → Vector(codecTrees(packages map (e ⇒ (e._1, e._3))))
       )
     ).map {
           case (name, trees) ⇒

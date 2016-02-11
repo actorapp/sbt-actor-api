@@ -20,7 +20,7 @@ private[api] trait ApiServiceTrees extends TreeHelpers with StringHelperTrees {
         VAL("handleRequestPartial", valueCache("PartialFunction[RpcRequest, ClientData => Future[HandleResult]]")),
         DEF("onFailure", TYPE_REF(REF(PartialFunctionClass) APPLYTYPE ("Throwable", "RpcError"))) :=
           (REF("PartialFunction") DOT "empty" APPLYTYPE ("Throwable", "RpcError")),
-        DEF("recoverFailure", TYPE_REF(REF(PartialFunctionClass) APPLYTYPE ("Throwable", "HandleResult"))) withFlags Flags.FINAL :=
+        DEF("recoverFailure[A <: RpcResponse]", TYPE_REF(REF(PartialFunctionClass) APPLYTYPE ("Throwable", "HandlerResult[A]"))) withFlags Flags.FINAL :=
           REF("onFailure") DOT "andThen" APPLY LAMBDA(PARAM("e")) ==> BLOCK(REF("-\\/") APPLY REF("e"))
       ),
       TRAITDEF("BaseClientData") := BLOCK(
@@ -88,15 +88,22 @@ private[api] trait ApiServiceTrees extends TreeHelpers with StringHelperTrees {
             else
               hname
 
+          val bhname = "b" + hname
+
+          val paramsWithClient = params :+ PARAM("clientData", valueCache("ClientData")).tree
+          val attrNamesWithClient = attributes.map(a ⇒ REF(a.name)) :+ REF("clientData")
+
           Vector(
-            DEF(jhname, htype).withParams(
-              params.toVector :+ PARAM("clientData", valueCache("ClientData")).tree
-            ).tree withDoc (generateDoc(doc): _*),
-            DEF(shname, htype).withParams(
-              params.toVector
-            ).withParams(
-              PARAM("clientData", valueCache("ClientData")).withFlags(Flags.IMPLICIT)
-            ) := REF(jhname) APPLY (attributes.map(a ⇒ REF(a.name)) :+ REF("clientData"))
+            DEF(bhname, htype)
+              .withFlags(Flags.PROTECTED)
+              .withParams(paramsWithClient).tree
+              .withDoc(generateDoc(doc): _*),
+            DEF(jhname, htype).withParams(paramsWithClient) :=
+              REF(bhname) APPLY attrNamesWithClient DOT "recover" APPLY REF("recoverFailure"),
+            DEF(shname, htype)
+              .withParams(params)
+              .withParams(PARAM("clientData", valueCache("ClientData")).withFlags(Flags.IMPLICIT)) :=
+              REF(jhname) APPLY attrNamesWithClient
           )
       }).flatten
 
@@ -115,12 +122,12 @@ private[api] trait ApiServiceTrees extends TreeHelpers with StringHelperTrees {
                     REF(f"jhandle$name%s") APPLY REF("clientData")
                   } else
                     REF(f"jhandle$name%s") APPLY (rqParams :+ REF("clientData"))),
-                  (REF("f") DOT "map" APPLY BLOCK(
+                  REF("f") DOT "map" APPLY BLOCK(
                     CASE(REF("\\/-") APPLY REF("rsp")) ==> (
                       REF("\\/-") APPLY (REF("RpcOk") APPLY REF("rsp"))
                     ),
                     CASE(REF("err: -\\/[RpcError]")) ==> REF("err")
-                  )) DOT "recover" APPLY REF("recoverFailure")
+                  )
                 )
               )
 
