@@ -3,7 +3,7 @@ package im.actor.api
 import treehugger.forest._, definitions._
 import treehuggerDSL._
 
-private[api] trait ApiServiceTrees extends TreeHelpers {
+private[api] trait ApiServiceTrees extends TreeHelpers with StringHelperTrees {
   private lazy val ScalazEitherType = definitions.getClass("\\/")
 
   protected val baseServiceTrees: Vector[Tree] = {
@@ -50,7 +50,7 @@ private[api] trait ApiServiceTrees extends TreeHelpers {
       Vector.empty
     } else {
       val handlers: Vector[Tree] = (rpcs map {
-        case RpcContent(_, name, attributes, _, response) ⇒
+        case RpcContent(_, name, attributes, doc, response) ⇒
           val params = attributes map { attr ⇒
 
             def scalaTyp(typ: Types.AttributeType): Type = typ match {
@@ -90,8 +90,8 @@ private[api] trait ApiServiceTrees extends TreeHelpers {
 
           Vector(
             DEF(jhname, htype).withParams(
-            params.toVector :+ PARAM("clientData", valueCache("ClientData")).tree
-          ).tree,
+              params.toVector :+ PARAM("clientData", valueCache("ClientData")).tree
+            ).tree withDoc (generateDoc(doc): _*),
             DEF(shname, htype).withParams(
               params.toVector
             ).withParams(

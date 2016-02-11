@@ -1,11 +1,23 @@
 package im.actor.api
 
+import im.actor.api.Categories.Danger
 import treehugger.forest._, definitions._
 import treehuggerDSL._
 
 import scala.language.postfixOps
 
-trait ToStringTrees extends TreeHelpers {
+trait StringHelperTrees extends TreeHelpers with Hacks {
+
+  private val DANGER_NOTE = DocTag.Note("Contains sensitive data!!!")
+
+  protected def generateDoc(doc: Doc): Vector[DocElement] = {
+    val attrDocs = doc.attributeDocs map { aDoc ⇒
+      val nameDesc = List(hackAttributeName(aDoc.argument), aDoc.description)
+      val args = if (aDoc.category == Danger) nameDesc :+ DANGER_NOTE else nameDesc
+      DocTag.Param(args: _*)
+    }
+    DocText(doc.generalDoc) +: attrDocs
+  }
 
   protected val stringHelpersTree: Tree = OBJECTDEF("StringHelpers") withFlags PRIVATEWITHIN("api") := BLOCK(
     DEF("escapeSpecial", StringClass).withParams(PARAM("source", StringClass)) :=

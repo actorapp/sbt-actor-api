@@ -6,7 +6,13 @@ import treehuggerDSL._
 import scala.language.postfixOps
 import spray.json._
 
-final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers with SerializationTrees with DeserializationTrees with CodecTrees with ApiServiceTrees {
+final class Json2Tree(jsonString: String)
+    extends JsonFormats
+    with JsonHelpers
+    with SerializationTrees
+    with DeserializationTrees
+    with CodecTrees
+    with ApiServiceTrees {
   private val jsonAst = jsonString.parseJson
   private val rootObj = jsonAst.convertTo[JsObject]
 
@@ -253,7 +259,8 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
       params,
       classTrees,
       objectTrees,
-      Vector(headerDef)
+      Vector(headerDef),
+      rpc.doc
     )
 
     (
@@ -280,7 +287,7 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
     )
     val deserTrees = deserializationTrees(className, resp.attributes)
 
-    classWithCompanion(packageName, className, Vector(valueCache("RpcResponse")), params, serTrees, deserTrees, Vector(headerDef))
+    classWithCompanion(packageName, className, Vector(valueCache("RpcResponse")), params, serTrees, deserTrees, Vector(headerDef), resp.doc)
   }
 
   private def relatedIdsDef(attrs: Seq[Attribute], aliasName: String, isPeer: Boolean = false): ValDef = {
@@ -362,7 +369,7 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
 
     val idsTrees = Seq(relatedIdsDef(update.attributes, "UserId"), relatedIdsDef(update.attributes, "GroupId"))
 
-    classWithCompanion(packageName, className, Vector(valueCache("Update")), params, serTrees ++ idsTrees, deserTrees, Vector(headerDef))
+    classWithCompanion(packageName, className, Vector(valueCache("Update")), params, serTrees ++ idsTrees, deserTrees, Vector(headerDef), update.doc)
   }
 
   private def updateBoxItemTrees(packageName: String, ub: UpdateBox): (Vector[Tree], Vector[Tree]) = {
@@ -382,7 +389,7 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
 
     val headerDef = dec2headerDef(ub.header)
 
-    classWithCompanion(packageName, ub.name, Vector(valueCache("UpdateBox")), params, serTrees, deserTrees, Vector(headerDef))
+    classWithCompanion(packageName, ub.name, Vector(valueCache("UpdateBox")), params, serTrees, deserTrees, Vector(headerDef), ub.doc)
   }
 
   private def structItemTrees(packageName: String, struct: Struct): TreesChildren = {
@@ -428,7 +435,7 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
     val isPeer = struct._name == "Peer" || struct._name == "OutPeer"
     val idsTrees = Seq(relatedIdsDef(struct.attributes, "UserId", isPeer), relatedIdsDef(struct.attributes, "GroupId", isPeer))
 
-    classWithCompanion(packageName, struct.name, parents, params, serTrees ++ traitImplTrees ++ idsTrees, deserTrees, Vector.empty) match {
+    classWithCompanion(packageName, struct.name, parents, params, serTrees ++ traitImplTrees ++ idsTrees, deserTrees, Vector.empty, struct.doc) match {
       case (globalRefs, trees) ⇒
         (globalRefs, trees, Vector(struct))
     }
@@ -475,7 +482,8 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
     params:      Vector[ValDef],
     classTrees:  Vector[Tree],
     objectTrees: Vector[Tree],
-    commonTrees: Vector[Tree]
+    commonTrees: Vector[Tree],
+    doc:         Doc
   ): (Vector[Tree], Vector[Tree]) = {
     val ref = REF(f"$packageName%s.$name%s")
     val objRef = VAL(name) := ref
@@ -495,17 +503,19 @@ final class Json2Tree(jsonString: String) extends JsonFormats with JsonHelpers w
             )
           )
       )
-    } else {
-      (
+    } else (
+      Vector(
+        TYPEVAR(name) := ref,
+        objRef
+      ),
         Vector(
-          TYPEVAR(name) := ref,
-          objRef
-        ),
-          Vector(
-            CASECLASSDEF(name) withFlags Flags.FINAL withParents parents withParams params := BLOCK(classTrees ++ commonTrees),
-            OBJECTDEF(name) := BLOCK(objectTrees ++ commonTrees)
-          )
-      )
-    }
+          (CASECLASSDEF(name)
+            withFlags Flags.FINAL
+            withParents parents
+            withParams params := BLOCK(classTrees ++ commonTrees))
+            withDoc (generateDoc(doc): _*),
+          OBJECTDEF(name) := BLOCK(objectTrees ++ commonTrees)
+        )
+    )
   }
 }

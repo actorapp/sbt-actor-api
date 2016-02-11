@@ -4,7 +4,7 @@ import scala.language.postfixOps
 import treehugger.forest._, definitions._
 import treehuggerDSL._
 
-private[api] trait SerializationTrees extends TreeHelpers with ToStringTrees {
+private[api] trait SerializationTrees extends TreeHelpers with StringHelperTrees {
   private def CodedOutputStreamClass = valueCache("CodedOutputStream")
   private def CodedOutputStream = REF(CodedOutputStreamClass)
 
