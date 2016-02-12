@@ -77,8 +77,6 @@ private[api] trait ApiServiceTrees extends TreeHelpers with StringHelperTrees {
           }
 
           val hname = f"handle$name%s"
-
-          val jhname = "j" + hname
           val htype = valueCache(f"Future[HandlerResult[$respType%s]]")
 
           // workaround for eed3si9n/treehugger#26
@@ -88,22 +86,21 @@ private[api] trait ApiServiceTrees extends TreeHelpers with StringHelperTrees {
             else
               hname
 
-          val bhname = "b" + hname
+          val doHname = "do" + hname.capitalize
 
           val paramsWithClient = params :+ PARAM("clientData", valueCache("ClientData")).tree
           val attrNamesWithClient = attributes.map(a ⇒ REF(a.name)) :+ REF("clientData")
 
           Vector(
-            DEF(bhname, htype)
+            DEF(doHname, htype)
               .withFlags(Flags.PROTECTED)
               .withParams(paramsWithClient).tree
               .withDoc(generateDoc(doc): _*),
-            DEF(jhname, htype).withParams(paramsWithClient) :=
-              REF(bhname) APPLY attrNamesWithClient DOT "recover" APPLY REF("recoverFailure"),
             DEF(shname, htype)
+              .withFlags(Flags.FINAL)
               .withParams(params)
               .withParams(PARAM("clientData", valueCache("ClientData")).withFlags(Flags.IMPLICIT)) :=
-              REF(jhname) APPLY attrNamesWithClient
+              REF(doHname) APPLY attrNamesWithClient DOT "recover" APPLY REF("recoverFailure")
           )
       }).flatten
 
@@ -119,9 +116,9 @@ private[api] trait ApiServiceTrees extends TreeHelpers with StringHelperTrees {
               CASE(REF("r") withType valueCache(f"Request$name%s")) ==> (
                 LAMBDA(PARAM("clientData", valueCache("ClientData"))) ==> BLOCK(
                   VAL("f") := (if (rqParams.isEmpty) {
-                    REF(f"jhandle$name%s") APPLY REF("clientData")
+                    REF(f"handle$name%s()") APPLY REF("clientData")
                   } else
-                    REF(f"jhandle$name%s") APPLY (rqParams :+ REF("clientData"))),
+                    REF(f"handle$name%s") APPLY rqParams APPLY REF("clientData")),
                   REF("f") DOT "map" APPLY BLOCK(
                     CASE(REF("\\/-") APPLY REF("rsp")) ==> (
                       REF("\\/-") APPLY (REF("RpcOk") APPLY REF("rsp"))
