@@ -6,7 +6,7 @@ organization := "im.actor"
 
 name := "sbt-actor-api"
 
-version := "0.7.5"
+version := "0.7.6"
 
 scalaVersion := "2.10.6"
 
