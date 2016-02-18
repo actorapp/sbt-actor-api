@@ -155,7 +155,9 @@ private[api] trait DeserializationTrees extends TreeHelpers with Hacks {
                 (REF("in") DOT "readTag()") MATCH cases
               ),
 
-            REF("doParse") APPLY (partialTypeRef DOT "empty") DOT ("right") FLATMAP (WILDCARD DOT "asComplete")
+            TRY(
+              REF("doParse") APPLY (partialTypeRef DOT "empty") DOT "right" FLATMAP (WILDCARD DOT "asComplete")
+            ) CATCH (CASE(REF("e: Exception")) ==> LEFT(REF("e") DOT "getMessage")) ENDTRY
           )
         case None ⇒
           val cases = Vector(
