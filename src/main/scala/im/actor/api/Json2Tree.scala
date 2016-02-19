@@ -12,7 +12,8 @@ final class Json2Tree(jsonString: String)
     with SerializationTrees
     with DeserializationTrees
     with CodecTrees
-    with ApiServiceTrees {
+    with ApiServiceTrees
+    with DebugHelpersTrees {
   private val jsonAst = jsonString.parseJson
   private val rootObj = jsonAst.convertTo[JsObject]
 
@@ -112,7 +113,7 @@ final class Json2Tree(jsonString: String)
       rpcResponseDef,
       requestDef,
       requestObjDef
-    ) ++ baseServiceTrees :+ stringHelpersTree
+    ) ++ baseServiceTrees ++ Seq(stringHelpersTree, debugTree)
 
     (
       (packageTrees map {
