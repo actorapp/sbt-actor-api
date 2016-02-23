@@ -128,7 +128,7 @@ final class Json2Tree(jsonString: String)
               name,
               Vector(
                 "scala.concurrent._",
-                "scalaz._",
+                "cats.data.Xor",
                 "com.google.protobuf.{ CodedInputStream, CodedOutputStream, ByteString }"
               ), trees
             ))))
