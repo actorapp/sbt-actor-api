@@ -21,12 +21,17 @@ trait StringHelperTrees extends TreeHelpers with Hacks {
 
   protected val stringHelpersTree: Tree = OBJECTDEF("StringHelpers") withFlags PRIVATEWITHIN("api") := BLOCK(
     DEF("escapeSpecial", StringClass).withParams(PARAM("source", StringClass)) :=
-      REF("source")
-      DOT "replace" APPLY (LIT("\n"), LIT("\\n"))
-      DOT "replace" APPLY (LIT("\r"), LIT("\\r"))
-      DOT "replace" APPLY (LIT("\t"), LIT("\\t"))
-      DOT "replace" APPLY (LIT("\f"), LIT("\\f"))
-      DOT "replace" APPLY (LIT("\""), LIT("\\\""))
+      REF("source") DOT "flatMap" APPLY BLOCK(
+        CASE(
+          ID("c"),
+          IF((REF("c") ANY_== LIT('\n')) OR (REF("c") ANY_== LIT('\r')) OR (REF("c") ANY_== LIT('\t')) OR (REF("c") ANY_== LIT('\f')))
+        ) ==> INTERP("s", LIT("\\"), REF("c")),
+        CASE(
+          ID("c"),
+          IF(REF("c") ANY_== LIT('"'))
+        ) ==> LIT("\\\""),
+        CASE(ID("c")) ==> REF("c") TOSTRING
+      )
   )
 
   protected def generateToString(name: String, attributes: Vector[Attribute], attribureDocs: Vector[AttributeDoc]): DefDef = {
