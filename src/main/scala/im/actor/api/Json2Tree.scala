@@ -81,8 +81,8 @@ final class Json2Tree(jsonString: String)
 
     val rpcResultDef: Tree = TRAITDEF("RpcResult")
 
-    val rpcRequestDef: Tree = TRAITDEF("RpcRequest") withParents valueCache("BSerializable")
-    val rpcResponseDef: Tree = TRAITDEF("RpcResponse") withParents valueCache("BSerializable")
+    val rpcRequestDef: Tree = TRAITDEF("RpcRequest") withParents valueCache("BSerializable") withParents valueCache("ContainsHeader")
+    val rpcResponseDef: Tree = TRAITDEF("RpcResponse") withParents valueCache("BSerializable") withParents valueCache("ContainsHeader")
     val errorDataDef: Tree = TRAITDEF("ErrorData") withParents valueCache("BSerializable")
     val rpcOkDef: Tree = CASECLASSDEF("RpcOk") withParents valueCache("RpcResult") withParams PARAM("response", valueCache("RpcResponse"))
     val rpcErrorDef: Tree = CASECLASSDEF("RpcError") withParents valueCache("RpcResult") withParams (

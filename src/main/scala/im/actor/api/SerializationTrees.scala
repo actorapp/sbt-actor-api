@@ -82,9 +82,12 @@ private[api] trait SerializationTrees extends TreeHelpers with StringHelperTrees
       case Types.Enum(_) ⇒ Vector(simpleComputer("computeEnumSize", id, REF(name) DOT ("id")))
       case Types.Opt(optAttrType) ⇒
         Vector(
-          REF(name) MAP LAMBDA(PARAM("x")) ==> BLOCK(
-            computer(id, "x", optAttrType)
-          ) POSTFIX ("getOrElse") APPLY (LIT(0))
+          IF(REF(name) DOT "isDefined") THEN (
+            BLOCK(
+              (VAL("__value") := REF(name) DOT "get") +:
+                computer(id, "__value", optAttrType)
+            )
+          ) ELSE LIT(0)
         )
       case Types.List(listAttrType) ⇒
         // TODO: optimize using view
@@ -94,38 +97,23 @@ private[api] trait SerializationTrees extends TreeHelpers with StringHelperTrees
           )) DOT ("foldLeft") APPLY (LIT(0)) APPLY (WILDCARD INT_+ WILDCARD)
         )
       case Types.Struct(_) | Types.Trait(_) ⇒
-        Vector(BLOCK(
+        Vector(
           VAL("size") := REF(name) DOT ("getSerializedSize"),
           (CodedOutputStreamClass DOT ("computeTagSize") APPLY (LIT(id))) INT_+
             (CodedOutputStreamClass DOT ("computeRawVarint32Size") APPLY (REF("size"))) INT_+
             REF("size")
-        ))
+        )
       case Types.Alias(aliasName) ⇒
         computer(id, name, aliasesPrim.get(aliasName).get)
     }
   }
 
   protected def serializationTrees(packageName: String, name: String, attributes: Vector[Attribute], doc: Doc): Vector[Tree] = {
-    val sortedAttributes = attributes.sortBy(_.id)
-
-    val writers: Vector[Tree] = sortedAttributes map { attr ⇒
-      writer(attr.id, attr.name, attr.typ)
-    } flatten
-
-    val sizeComputers: Vector[Tree] =
-      if (sortedAttributes.length > 0) {
-        sortedAttributes map { attr ⇒
-          PAREN(
-            computer(attr.id, attr.name, attr.typ)
-          )
-        }
-      } else {
-        Vector(LIT(0))
-      }
+    val (writer, size) = writerAndSize(attributes)
 
     Vector(
-      DEF("writeTo", UnitClass) withParams (PARAM("out", CodedOutputStreamClass)) := BLOCK(writers),
-      DEF("getSerializedSize", IntClass) := BLOCK(INFIX_CHAIN("+", sizeComputers)),
+      DEF("writeTo", UnitClass) withParams (PARAM("out", CodedOutputStreamClass)) := writer,
+      DEF("getSerializedSize", IntClass) := size,
       DEF("toByteArray", arrayType(ByteClass)) := BLOCK(
         VAL("res") := NEW(arrayType(ByteClass), REF("getSerializedSize")),
         VAL("out") := CodedOutputStreamClass DOT ("newInstance") APPLY (REF("res")),
@@ -133,31 +121,16 @@ private[api] trait SerializationTrees extends TreeHelpers with StringHelperTrees
         REF("out") DOT ("checkNoSpaceLeft") APPLY (),
         REF("res")
       ),
-      generateToString(name, sortedAttributes, doc.attributeDocs)
+      generateToString(name, attributes, doc.attributeDocs)
     )
   }
 
   protected def traitChildSerializationTrees(packageName: String, name: String, attributes: Vector[Attribute], doc: Doc): Vector[Tree] = {
-    val sortedAttributes = attributes.sortBy(_.id)
-
-    val writers: Vector[Tree] = sortedAttributes map { attr ⇒
-      writer(attr.id, attr.name, attr.typ)
-    } flatten
-
-    val sizeComputers: Vector[Tree] =
-      if (sortedAttributes.length > 0) {
-        sortedAttributes map { attr ⇒
-          PAREN(
-            computer(attr.id, attr.name, attr.typ)
-          )
-        }
-      } else {
-        Vector(LIT(0))
-      }
+    val (writer, size) = writerAndSize(attributes)
 
     Vector(
-      DEF("childWriteTo", UnitClass) withParams (PARAM("out", CodedOutputStreamClass)) := BLOCK(writers),
-      DEF("childGetSerializedSize", IntClass) := BLOCK(INFIX_CHAIN("+", sizeComputers)),
+      DEF("childWriteTo", UnitClass) withParams (PARAM("out", CodedOutputStreamClass)) := writer,
+      DEF("childGetSerializedSize", IntClass) := size,
       DEF("childToByteArray", arrayType(ByteClass)) := BLOCK(
         VAL("res") := NEW(arrayType(ByteClass), REF("childGetSerializedSize")),
         VAL("out") := CodedOutputStreamClass DOT ("newInstance") APPLY (REF("res")),
@@ -165,7 +138,7 @@ private[api] trait SerializationTrees extends TreeHelpers with StringHelperTrees
         REF("out") DOT ("checkNoSpaceLeft") APPLY (),
         REF("res")
       ),
-      generateToString(name, sortedAttributes, doc.attributeDocs)
+      generateToString(name, attributes, doc.attributeDocs)
     )
   }
 
@@ -196,5 +169,29 @@ private[api] trait SerializationTrees extends TreeHelpers with StringHelperTrees
       DEF("childGetSerializedSize", IntClass),
       DEF("childToByteArray", arrayType(ByteClass))
     )
+  }
+
+  private def writerAndSize(attributes: Vector[Attribute]) = {
+    val sortedAttributes = attributes.sortBy(_.id)
+
+    val writers: Vector[Tree] = sortedAttributes map { attr ⇒
+      writer(attr.id, attr.name, attr.typ)
+    } flatten
+
+    val sizeComputers: Map[String, Tree] =
+      (if (sortedAttributes.length > 0) {
+        sortedAttributes map { attr ⇒
+          (s"__${attr.name}Size" → BLOCK(computer(attr.id, attr.name, attr.typ)))
+        }
+      } else Vector.empty).toMap
+
+    val size = BLOCK((sizeComputers map {
+      case (name, computer) ⇒
+        VAL(name) := computer
+    }).toVector :+
+      (if (sizeComputers.isEmpty) LIT(0)
+      else INFIX_CHAIN("+", sizeComputers.keys map (REF(_)))))
+
+    (BLOCK(writers), size)
   }
 }
