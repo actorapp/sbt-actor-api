@@ -48,7 +48,7 @@ private[api] trait ApiServiceTrees extends TreeHelpers with StringHelperTrees {
         )
           withParents valueCache("BaseClientData"),
       CASECLASSDEF("GuestClientData")
-        withParams (PARAM("authId", LongClass), PARAM("sessionId", LongClass))
+        withParams (PARAM("authId", LongClass), PARAM("sessionId", LongClass), PARAM("appId", IntClass))
         withParents valueCache("BaseClientData")
     )
   }
