@@ -27,7 +27,7 @@ private[api] trait ApiServiceTrees extends TreeHelpers with StringHelperTrees {
         VAL("appId", IntClass)
       ),
       CASECLASSDEF("AuthData")
-        withParams (PARAM("userId", IntClass), PARAM("authSid", IntClass), PARAM("appId", IntClass)),
+        withParams (PARAM("userId", IntClass), PARAM("authSid", IntClass)),
       CASECLASSDEF("ClientData")
         withParams (
           PARAM("authId", LongClass),
