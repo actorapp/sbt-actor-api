@@ -23,18 +23,30 @@ private[api] trait ApiServiceTrees extends TreeHelpers with StringHelperTrees {
       ),
       TRAITDEF("BaseClientData") := BLOCK(
         VAL("authId", LongClass),
-        VAL("sessionId", LongClass)
+        VAL("sessionId", LongClass),
+        VAL("appId", IntClass)
       ),
       CASECLASSDEF("AuthData")
-        withParams (PARAM("userId", IntClass), PARAM("authSid", IntClass)),
+        withParams (PARAM("userId", IntClass), PARAM("authSid", IntClass), PARAM("appId", IntClass)),
       CASECLASSDEF("ClientData")
-        withParams (PARAM("authId", LongClass), PARAM("sessionId", LongClass), PARAM("authData", optionType(valueCache("AuthData"))))
-        withParents valueCache("BaseClientData") := BLOCK {
-          DEF("optUserId") := REF("authData") DOT "map" APPLY (WILDCARD DOT "userId")
-        },
+        withParams (
+          PARAM("authId", LongClass),
+          PARAM("sessionId", LongClass),
+          PARAM("authData", optionType(valueCache("AuthData"))),
+          PARAM("appId", IntClass)
+        )
+          withParents valueCache("BaseClientData") := BLOCK {
+            DEF("optUserId") := REF("authData") DOT "map" APPLY (WILDCARD DOT "userId")
+          },
       CASECLASSDEF("AuthorizedClientData")
-        withParams (PARAM("authId", LongClass), PARAM("sessionId", LongClass), PARAM("userId", IntClass), PARAM("authSid", IntClass))
-        withParents valueCache("BaseClientData"),
+        withParams (
+          PARAM("authId", LongClass),
+          PARAM("sessionId", LongClass),
+          PARAM("userId", IntClass),
+          PARAM("authSid", IntClass),
+          PARAM("appId", IntClass)
+        )
+          withParents valueCache("BaseClientData"),
       CASECLASSDEF("GuestClientData")
         withParams (PARAM("authId", LongClass), PARAM("sessionId", LongClass))
         withParents valueCache("BaseClientData")
