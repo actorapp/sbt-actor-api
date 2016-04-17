@@ -31,7 +31,9 @@ private[api] trait ApiServiceTrees extends TreeHelpers with StringHelperTrees {
         withParams (
           PARAM("authId", LongClass),
           PARAM("sessionId", LongClass),
-          PARAM("authData", optionType(valueCache("AuthData")))
+          PARAM("authData", optionType(valueCache("AuthData"))),
+          PARAM("remoteAddr", optionType(valueCache("String"))) := REF("None")
+
         )
           withParents valueCache("BaseClientData") := BLOCK {
             DEF("optUserId") := REF("authData") DOT "map" APPLY (WILDCARD DOT "userId")
@@ -42,11 +44,12 @@ private[api] trait ApiServiceTrees extends TreeHelpers with StringHelperTrees {
           PARAM("sessionId", LongClass),
           PARAM("userId", IntClass),
           PARAM("authSid", IntClass),
-          PARAM("appId", IntClass)
+          PARAM("appId", IntClass),
+          PARAM("remoteAddr", optionType(valueCache("String"))) := REF("None")
         )
           withParents valueCache("BaseClientData"),
       CASECLASSDEF("GuestClientData")
-        withParams (PARAM("authId", LongClass), PARAM("sessionId", LongClass))
+        withParams (PARAM("authId", LongClass), PARAM("sessionId", LongClass), PARAM("remoteAddr", optionType(valueCache("String"))) := REF("None"))
         withParents valueCache("BaseClientData")
     )
   }
