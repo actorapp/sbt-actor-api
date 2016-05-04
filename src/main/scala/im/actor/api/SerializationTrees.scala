@@ -40,8 +40,8 @@ private[api] trait SerializationTrees extends TreeHelpers with StringHelperTrees
       case struct @ Types.Struct(structName) ⇒
         Vector(
           REF("out") DOT ("writeTag") APPLY (LIT(id), REF("com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED")),
-          REF("out") DOT ("writeRawVarint32") APPLY (REF(name) DOT ("getSerializedSize")),
-          REF(name) DOT ("writeTo") APPLY (REF("out"))
+          REF("out") DOT ("writeRawVarint32") APPLY (REF(name) DOT (if (isChild(struct.name)) "childGetSerializedSize" else "getSerializedSize")),
+          REF(name) DOT (if (isChild(struct.name)) "childWriteTo" else "writeTo") APPLY (REF("out"))
         )
       case Types.Trait(traitName) ⇒
         val traitBaos = f"baos$traitName%s"
@@ -96,9 +96,14 @@ private[api] trait SerializationTrees extends TreeHelpers with StringHelperTrees
             computer(id, "x", listAttrType)
           )) DOT ("foldLeft") APPLY (LIT(0)) APPLY (WILDCARD INT_+ WILDCARD)
         )
-      case Types.Struct(_) | Types.Trait(_) ⇒
+      case t @ (Types.Struct(_) | Types.Trait(_)) ⇒
+        val serSize = t match {
+          case struct: Types.Struct if isChild(struct.name) ⇒ "childGetSerializedSize"
+          case _ ⇒ "getSerializedSize"
+        }
+
         Vector(
-          VAL("size") := REF(name) DOT ("getSerializedSize"),
+          VAL("size") := REF(name) DOT (serSize),
           (CodedOutputStreamClass DOT ("computeTagSize") APPLY (LIT(id))) INT_+
             (CodedOutputStreamClass DOT ("computeRawVarint32Size") APPLY (REF("size"))) INT_+
             REF("size")

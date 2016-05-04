@@ -41,7 +41,14 @@ final class Json2Tree(jsonString: String)
                 } mkString "\n"
               case _ ⇒ ""
             }
-            (packageName, docString, items(obj.fields("items").convertTo[JsArray].elements))
+            val packageItems = items(obj.fields("items").convertTo[JsArray].elements)
+
+            packageItems foreach {
+              case ni: NamedItem ⇒
+                typeMapping += ni.name → ni
+            }
+
+            (packageName, docString, packageItems)
           case _ ⇒
             throw new Exception("package field is not a JsString")
         }
@@ -197,7 +204,7 @@ final class Json2Tree(jsonString: String)
     )
 
   private def itemsBlock(packageName: String, items: Vector[Item]): (Vector[Tree], Tree) = {
-    val requestTraitTree: Tree = TRAITDEF(f"${packageName.capitalize}%sRpcRequest") withParents valueCache("RpcRequest") withFlags (Flags.SEALED)
+    val requestTraitTree: Tree = TRAITDEF(f"${packageName.capitalize}%sRpcRequest") withParents valueCache("RpcRequest") withFlags Flags.SEALED
 
     val (globalRefs, trees, traits, allChildren): TreesTraitsChildren = items.foldLeft[TreesTraitsChildren](
       (Vector.empty, Vector.empty, Vector.empty, Vector.empty)

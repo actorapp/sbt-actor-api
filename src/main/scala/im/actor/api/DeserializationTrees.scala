@@ -69,7 +69,7 @@ private[api] trait DeserializationTrees extends TreeHelpers with Hacks {
         BLOCK(FOR(forExprs) YIELD completeBuilder)
       }
 
-      val classDef = CASECLASSDEF(className) withFlags (Flags.PRIVATE) withParams params := BLOCK(
+      val classDef = CASECLASSDEF(className) withFlags Flags.PRIVATE withParams params := BLOCK(
         DEF("asComplete", eitherType(ErrorType, name)) := asCompleteTree
       )
 

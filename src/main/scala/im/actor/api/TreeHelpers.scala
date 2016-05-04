@@ -9,6 +9,11 @@ import treehuggerDSL._
 private[api] trait TreeHelpers {
   val aliasesPrim: Map[String, AttributeType]
 
+  protected var typeMapping = Map.empty[String, NamedItem]
+
+  protected def isChild(name: String) =
+    typeMapping.get(name).exists(_.traitExt.isDefined)
+
   private val symCache: mutable.Map[Name, Symbol] = mutable.Map.empty
 
   protected def valueCache(name: Name): Symbol = {
